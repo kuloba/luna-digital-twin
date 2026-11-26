@@ -52,12 +52,14 @@ export function Welcome() {
   // Clicking into the twin is an answer too: step aside once they explore.
   const selectedId = useTwin((s) => s.selectedId);
   const focus = useTwin((s) => s.focus);
+  const searching = useTwin((s) => s.searchOpen);
+  const asking = useTwin((s) => s.rightPanel === "luna");
   useEffect(() => {
-    if (selectedId || focus !== "SITE") {
+    if (selectedId || focus !== "SITE" || searching || asking) {
       remember();
       setOpen(false);
     }
-  }, [selectedId, focus]);
+  }, [selectedId, focus, searching, asking]);
 
   useEffect(() => {
     useTwin.setState({ welcomeOpen: open && !tourActive });
