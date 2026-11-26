@@ -284,3 +284,41 @@ body,
 .trace-pin--active .trace-pin__when {
   color: #9a5b05;
 }
+
+/* Edge data-flow callout (bandwidth story) */
+.flow-chip {
+  translate: 0 -50%;
+  transform: translateY(var(--tag-dy, 0px));
+  transition: opacity 160ms ease, transform 160ms ease;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px 6px 8px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.97);
+  box-shadow: 0 0 0 1px rgb(63 127 214 / 0.35), 0 6px 16px -4px rgb(15 27 42 / 0.25);
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-ink-2);
+}
+.flow-chip b {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.flow-chip__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.flow-chip__row--muted {
+  color: var(--color-muted);
+  font-size: 10.5px;
+}
+.flow-chip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex: none;
+}

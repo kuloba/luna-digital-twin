@@ -1,9 +1,10 @@
-import { Html, Line } from "@react-three/drei";
+import { Html, Line, QuadraticBezierLine } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
-import { CanvasTexture, type Group, type Mesh, type MeshBasicMaterial, SRGBColorSpace } from "three";
+import { CanvasTexture, type Group, type Mesh, type MeshBasicMaterial, SRGBColorSpace, Vector3 } from "three";
 import { formatDayTime, formatNumber } from "@/lib/format";
 import { C, severityColor } from "@/lib/theme";
+import { edgeRates } from "@/sim/cv";
 import { COLD_ROOMS, COMPARTMENTS, STATIONS, ZONE_BY_ID, corridorPath, pointAlong } from "@/sim/layout";
 import { twin, useTwin, type HeatLayer } from "@/sim/store";
 import { STAGES, type Asset, type SimState, type StageVisit } from "@/sim/types";
@@ -357,6 +358,84 @@ export function FlowPaths() {
       {paths.map((p) => (
         <Line key={p.id} points={p.pts} color={C.amber} lineWidth={1.6} transparent opacity={0.45} dashed dashSize={0.6} gapSize={0.5} />
       ))}
+    </group>
+  );
+}
+
+/** The bits of drei's Line2 we drive per frame. */
+interface Line2Like {
+  setPoints(start: Vector3, end: Vector3, mid: Vector3): void;
+  material: { dashOffset: number };
+}
+
+/* ------------------------------------------------------------------ */
+/* Edge data flow                                                     */
+/* ------------------------------------------------------------------ */
+
+const EDGE_AT = new Vector3(-4.2, 2.25, 29.6);
+const UPLINK_TOP = new Vector3(-4.2, 13.5, 29.6);
+
+/**
+ * The bandwidth story, drawn where it happens. While EDGE-01 is selected,
+ * a heavy amber stream runs from each camera rail into the edge node (the
+ * images, which never leave), and a hairline rises from it to the uplink
+ * (the few kilobits of plant state that do).
+ */
+export function EdgeFlow() {
+  const on = useTwin((s) => s.selectedId === "EDGE-01");
+  if (!on) return null;
+  return (
+    <group>
+      {COMPARTMENTS.map((c) => (
+        <RailStream key={c.id} id={c.id} x0={c.bounds[0]} width={c.bounds[2] - c.bounds[0]} />
+      ))}
+      <Uplink />
+    </group>
+  );
+}
+
+function RailStream({ id, x0, width }: { id: string; x0: number; width: number }) {
+  const ref = useRef<Line2Like>(null);
+  const start = useMemo(() => new Vector3(), []);
+  const mid = useMemo(() => new Vector3(), []);
+  useFrame((_, dt) => {
+    const line = ref.current;
+    const c = twin().sim.cv[id];
+    if (!line || !c) return;
+    // Follow the gantry along its rail; the stream leaves from the rail's front end.
+    start.set(x0 + 0.4 + c.scan * (width - 0.8), 4.1, 30.6);
+    mid.set((start.x + EDGE_AT.x) / 2, 8, (start.z + EDGE_AT.z) / 2 + 2);
+    line.setPoints(start, EDGE_AT, mid);
+    line.material.dashOffset -= dt * 2.2;
+  });
+  return <QuadraticBezierLine ref={ref as never} start={[x0, 4.1, 30.6]} end={EDGE_AT} color="#ee9a2c" lineWidth={4} dashed dashSize={0.8} gapSize={0.5} depthTest={false} renderOrder={6} />;
+}
+
+function Uplink() {
+  const ref = useRef<Line2Like>(null);
+  const rates = useTwin((s) => Math.round(edgeRates(s.sim.cv).syncKbps * 10));
+  const raw = useTwin((s) => Math.round(edgeRates(s.sim.cv).rawMbps));
+  const [anchor, setEl] = useLabelSlot("edge:uplink", 4.6);
+  useFrame((_, dt) => {
+    if (ref.current) ref.current.material.dashOffset -= dt * 0.6;
+  });
+  return (
+    <group>
+      <QuadraticBezierLine ref={ref as never} start={EDGE_AT} end={UPLINK_TOP} mid={[EDGE_AT.x, (EDGE_AT.y + UPLINK_TOP.y) / 2, EDGE_AT.z]} color="#2f6fc4" lineWidth={2} dashed dashSize={0.3} gapSize={0.3} depthTest={false} renderOrder={6} />
+      <group ref={anchor} position={UPLINK_TOP}>
+        <Html center zIndexRange={[29, 10]} style={{ pointerEvents: "none" }}>
+          <div ref={setEl} className="flow-chip">
+            <span className="flow-chip__row">
+              <span className="flow-chip__dot" style={{ background: "#3f7fd6" }} />
+              Uplink · <b>{formatNumber(rates / 10, 1)} kbps</b> of plant state
+            </span>
+            <span className="flow-chip__row flow-chip__row--muted">
+              <span className="flow-chip__dot" style={{ background: C.luna }} />
+              Photos stay on site · would need {formatNumber(raw)} Mbps
+            </span>
+          </div>
+        </Html>
+      </group>
     </group>
   );
 }

@@ -7,7 +7,7 @@ import { useTwin } from "@/sim/store";
 import { ColdChain, EdgeNode, GrowTowers, HarvestToPack, Propagation, RoomPlant, TankFarm } from "./Equipment";
 import { Facility } from "./Facility";
 import { Glasshouse } from "./Glasshouse";
-import { AlertBeacons, FlowPaths, Heatmap, SelectionMarker, TraceRoute } from "./Overlays";
+import { AlertBeacons, EdgeFlow, FlowPaths, Heatmap, SelectionMarker, TraceRoute } from "./Overlays";
 import { Robots } from "./Robots";
 import { Static } from "./Static";
 import { SpatialTags } from "./Tags";
@@ -50,6 +50,7 @@ export function Scene() {
         <Heatmap />
         <FlowPaths />
         <TraceRoute />
+        <EdgeFlow />
         <AlertBeacons />
         <SelectionMarker />
         <SpatialTags />

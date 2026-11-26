@@ -290,3 +290,27 @@ export function harvestForecast(plants: Plant[], crop: CompartmentCv["crop"], ho
 export function compartmentForecast(comp: CompartmentCv) {
   return harvestForecast(Object.values(comp.plants), comp.crop);
 }
+
+/* ------------------------------------------------------------------ */
+/* Edge bandwidth                                                     */
+/* ------------------------------------------------------------------ */
+
+/** Images taken today, what they weigh, and the plant state that left the site instead. */
+export function edgeTotals(cv: SimState["cv"]) {
+  let images = 0;
+  let syncedMb = 0;
+  for (const c of Object.values(cv)) {
+    images += c.imagesToday;
+    syncedMb += (Object.keys(c.plants).length * 9.2 * 1.15) / 1024 + c.imagesToday * 0.00009;
+  }
+  return { images, rawGb: (images * 4.2) / 1024, syncedMb };
+}
+
+/** Average uplink the day's photos would need vs what the state sync used, since scanning began at 05:00. */
+export function edgeRates(cv: SimState["cv"]) {
+  const t = edgeTotals(cv);
+  const start = new Date(clockNow());
+  start.setHours(5, 0, 0, 0);
+  const elapsed = Math.max(3600, (clockNow() - start.getTime()) / 1000);
+  return { ...t, rawMbps: (t.rawGb * 8 * 1024) / elapsed, syncKbps: (t.syncedMb * 8 * 1024) / elapsed, ratio: (t.rawGb * 1024) / Math.max(0.001, t.syncedMb) };
+}

@@ -1,10 +1,10 @@
 import { ArrowRight, Camera, Cpu, Radio, Wifi } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { cn, formatAgo, formatKg, formatNumber } from "@/lib/format";
-import { CUCUMBER_STAGES, PLANTS_PER_ROW, RIPENESS_STAGES, rowYield, stageIndex, summarise, type CvSummary } from "@/sim/cv";
+import { CUCUMBER_STAGES, edgeRates, PLANTS_PER_ROW, RIPENESS_STAGES, rowYield, stageIndex, summarise, type CvSummary } from "@/sim/cv";
 import { COMPARTMENTS } from "@/sim/layout";
 import { twin, useTwin } from "@/sim/store";
-import type { CompartmentCv, Plant, SimState } from "@/sim/types";
+import type { CompartmentCv, Plant } from "@/sim/types";
 import { CompartmentForecast } from "./Forecast";
 import { EntityChip } from "./RichText";
 import { Num, Section } from "./ui";
@@ -384,13 +384,7 @@ export function CameraRail({ compId }: { compId: string }) {
 
 export function EdgeStory() {
   const cv = useTwin((s) => s.sim.cv);
-  const { images, rawGb, syncedMb } = useMemo(() => edgeTotals(cv), [cv]);
-  const start = new Date(clockNow());
-  start.setHours(5, 0, 0, 0);
-  const elapsed = Math.max(3600, (clockNow() - start.getTime()) / 1000);
-  const rawMbps = (rawGb * 8 * 1024) / elapsed;
-  const syncKbps = (syncedMb * 8 * 1024) / elapsed;
-  const ratio = (rawGb * 1024) / Math.max(0.001, syncedMb);
+  const { images, rawGb, syncedMb, rawMbps, syncKbps, ratio } = useMemo(() => edgeRates(cv), [cv]);
   return (
     <>
       <Section title="What left the site today">
@@ -422,15 +416,6 @@ export function EdgeStory() {
   );
 }
 
-export function edgeTotals(cv: SimState["cv"]) {
-  let images = 0;
-  let syncedMb = 0;
-  for (const c of Object.values(cv)) {
-    images += c.imagesToday;
-    syncedMb += (Object.keys(c.plants).length * 9.2 * 1.15) / 1024 + c.imagesToday * 0.00009;
-  }
-  return { images, rawGb: (images * 4.2) / 1024, syncedMb };
-}
 
 function BarRow({ label, value, sub, pct, color }: { label: string; value: string; sub: string; pct: number; color: string }) {
   return (

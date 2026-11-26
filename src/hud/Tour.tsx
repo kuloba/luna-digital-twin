@@ -103,7 +103,10 @@ export const STEPS: Step[] = [
     title: "Why it works on a farm's internet",
     body: "Today's images stay on [[EDGE-01]]. Only plant state syncs — thousands of times less data than shipping photos — so remote sites need no fibre and the twin stays instant.",
     enter: () => {
-      twin().select("EDGE-01", { fly: true });
+      // Pull back to the whole glasshouse so the rail-to-edge streams are in frame.
+      const st = twin();
+      st.select("EDGE-01");
+      st.flyToZone("GH");
     },
   },
   {
