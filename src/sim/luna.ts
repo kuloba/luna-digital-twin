@@ -1,5 +1,5 @@
 import { formatKg, formatNumber } from "@/lib/format";
-import { summarise } from "./cv";
+import { FRUIT_KG, stageIndex, summarise } from "./cv";
 import { inBand } from "./metrics";
 import type { Role } from "./store";
 import type { Alert, Asset, SimState } from "./types";
@@ -110,13 +110,14 @@ export function assetSummary(a: Asset, s: SimState): string {
 
 export const PRESETS = [
   { title: "What needs me?", prompt: "What needs my attention right now?" },
-  { title: "Tomato yield", prompt: "What will the tomato compartments yield this week?" },
   { title: "Why is V2 warm?", prompt: "Why is Grow Room V2 running warm?" },
-  { title: "Where's LET-1124?", prompt: "Where is LET-1124 and will it make the 14:00 truck?" },
+  { title: "Tomato yield", prompt: "What will the tomato compartments yield this week?" },
+  { title: "Pick plan", prompt: "Where should the picking crews go tomorrow?" },
   { title: "Pest pressure", prompt: "Where are the cameras seeing pest pressure?" },
+  { title: "Bandwidth", prompt: "How much data are the cameras sending off-site?" },
+  { title: "Where's LET-1124?", prompt: "Where is LET-1124 and will it make the 14:00 truck?" },
   { title: "Tank levels", prompt: "How are the fertigation tanks?" },
   { title: "Stand-up summary", prompt: "Give me a one-paragraph summary for stand-up." },
-  { title: "Bandwidth", prompt: "How much data are the cameras sending off-site?" },
 ];
 
 /** Longest known asset or batch ID mentioned in the prompt (e.g. "TANK-B", "G2-R04", "LET-1124"). */
@@ -158,6 +159,9 @@ export function reply(prompt: string, s: SimState, role: Role): { text: string; 
     const raw = (images * 4.2) / 1024;
     const synced = ((Object.keys(s.cv.G1.plants).length * 3 * 9.2 * 1.15) / 1024 + images * 0.00009);
     return { text: `Today the three camera rails have taken **${formatNumber(images)} images** (~${formatNumber(raw)} GB). None of them left the site. [[EDGE-01]] runs truss, ripeness and pest models locally and syncs **${formatNumber(synced, 1)} MB** of plant state — a **${formatNumber((1 - synced / 1024 / raw) * 100, 3)} %** reduction. That's why this twin stays live over a 12 Mbps LTE uplink, and why it loads instantly: you're looking at the crop's state, not its photos.` };
+  }
+  if (p.includes("crew") || p.includes("picker") || p.includes("pick plan") || p.includes("pick list") || p.includes("harvest plan")) {
+    return { text: pickPlan(s) };
   }
   if (p.includes("tomato") || p.includes("yield") || p.includes("ripe") || p.includes("pick")) {
     const out = ["G1", "G2"].map((id) => {
@@ -210,4 +214,43 @@ export function reply(prompt: string, s: SimState, role: Role): { text: string; 
     if (a) return { text: `[[${id}]] · ${a.name}: ${assetSummary(a, s)}` };
   }
   return { text: "I can answer from the live twin — try asking what needs you, tomato yield this week, pest pressure, tank levels, where a batch is, or how much data the cameras send off-site." };
+}
+
+/** Picker-hours a crew member covers in high-wire tomatoes (kg per hour). */
+const PICK_RATE = 140;
+
+/**
+ * Tomorrow's pick list, straight from the last camera pass: rows ranked by
+ * fruit already at light-red or red, crew-hours to clear them, and rows held
+ * back where the cameras see pest pressure.
+ */
+function pickPlan(s: SimState) {
+  const rows: { id: string; kg: number; pest?: string; peak: number }[] = [];
+  for (const id of ["G1", "G2"]) {
+    const c = s.cv[id];
+    for (const r of c.rows) {
+      let fruit = 0;
+      let pest: string | undefined;
+      let peak = 0;
+      for (const pid of r.plantIds) {
+        const pl = c.plants[pid];
+        for (const t of pl.seen.trusses) if (stageIndex(t.ripeness) >= 4) fruit += t.fruits;
+        if (pl.seen.pest && pl.seen.pestLevel > 0.08) pest = pl.seen.pest;
+        peak = Math.max(peak, pl.seen.pestLevel);
+      }
+      rows.push({ id: r.id, kg: fruit * 9.2 * FRUIT_KG.TOMATO, pest, peak });
+    }
+  }
+  // Hotspots are held for scouting; lighter pressure is picked last.
+  const held = rows.filter((r) => r.pest && r.peak >= 0.45);
+  const top = rows.filter((r) => !held.includes(r)).sort((a, b) => b.kg - a.kg).slice(0, 5);
+  const kg = top.reduce((n, r) => n + r.kg, 0);
+  const hours = kg / PICK_RATE;
+  const crew = Math.max(2, Math.ceil(hours / 3));
+  const list = top.map((r, i) => `${i + 1}. [[${r.id}]] — **${formatKg(r.kg)}** at light-red or red${r.pest ? ` · pick last, ${r.pest.toLowerCase()} nearby` : ""}`).join("\n");
+  const byPest = new Map<string, string[]>();
+  for (const r of [...held].sort((a, b) => a.id.localeCompare(b.id))) byPest.set(r.pest!, [...(byPest.get(r.pest!) ?? []), r.id]);
+  const groups = [...byPest.entries()].map(([pest, ids]) => `${pest.toLowerCase()} (${ids.map((id) => `[[${id}]]`).join(", ")})`);
+  const hold = groups.length ? `\n\nHold the ${groups.join(" and ")} hotspots until a scout clears them, so pickers don't carry it down the house.` : "";
+  return `Tomorrow's pick, from this morning's camera passes:\n\n${list}\n\nThat's **${formatKg(kg)}** across ${top.length} rows — about **${formatNumber(hours, 1)} picker-hours** at ${PICK_RATE} kg/h, so a crew of ${crew} clears it in ~${formatNumber(hours / crew, 1)} h.${hold}`;
 }

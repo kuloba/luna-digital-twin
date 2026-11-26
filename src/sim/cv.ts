@@ -184,7 +184,7 @@ export interface CvSummary {
   syncedMb: number;
 }
 
-const FRUIT_KG = { TOMATO: 0.132, CUCUMBER: 0.118 };
+export const FRUIT_KG = { TOMATO: 0.132, CUCUMBER: 0.118 };
 
 export function summarise(plants: Plant[], crop: CompartmentCv["crop"], imagesToday = 0): CvSummary {
   const stages = [0, 0, 0, 0, 0, 0];

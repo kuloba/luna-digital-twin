@@ -265,7 +265,7 @@ function AskLuna() {
             <h2 className="mt-3 font-serif text-[28px] leading-[1.05] tracking-[-0.01em] text-ink">Ask about anything in the facility.</h2>
             <p className="mt-2 text-[12.5px] leading-[1.55] text-muted">Luna answers from the live twin — sensors, robots, batches and what the cameras see — and cites what it looked at. Tap a chip in any answer to fly there.</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              {PRESETS.map((p) => (
+              {PRESETS.slice(0, 8).map((p) => (
                 <button key={p.title} type="button" onClick={() => send(p.prompt)} className="flex flex-col items-start gap-0.5 rounded-[12px] bg-panel-2 px-3 py-2.5 text-left ring-1 ring-line transition ring-inset hover:bg-white hover:ring-line-2">
                   <span className="text-[12px] font-medium text-ink">{p.title}</span>
                   <span className="line-clamp-2 text-[11px] leading-[1.35] text-muted">{p.prompt}</span>

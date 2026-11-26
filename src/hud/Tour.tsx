@@ -8,7 +8,7 @@ import { RichText } from "./RichText";
 import { LunaMark } from "./ui";
 
 /**
- * Guided demo: twelve beats that tell the story to someone who has never
+ * Guided demo: thirteen beats that tell the story to someone who has never
  * run a farm — and to someone who runs many. Each step drives the real UI
  * (camera, panels, layers, sim) so the audience sees the product, not slides.
  */
@@ -82,11 +82,21 @@ export const STEPS: Step[] = [
   },
   {
     title: "Down to a single plant",
-    body: "Each row is built from camera-measured trusses, fruit, flowers, head height and stem diameter. Click any plant — in 3D or in the strip — to see exactly what was measured and when.",
+    body: "Each row is built from camera-measured trusses, fruit, flowers, head height and stem diameter. Click any plant — in 3D or in the strip — to see what was measured, when, and the few hundred bytes the edge node synced for it.",
     enter: () => {
       const st = twin();
       st.selectPlant("G2-R04-P09", "G2-R04");
       st.flyToAsset("G2-R04");
+    },
+  },
+  {
+    title: "From pixels to a pick plan",
+    body: "Because the twin knows the colour of every truss, Luna turns this morning's scans into tomorrow's pick list and crew hours — and holds pickers out of the pest hotspots until a scout clears them.",
+    enter: () => {
+      const st = twin();
+      st.setCvLens("ripeness");
+      st.flyToZone("GH");
+      askLuna("Where should the picking crews go tomorrow?");
     },
   },
   {

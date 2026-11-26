@@ -166,7 +166,7 @@ function search(q: string, close: () => void): Item[] {
       const a = s.assets[id];
       out.push({ key: id, group: "Assets", title: `${a.id} · ${a.name}`, sub: a.activity, icon: <Box className="size-3.5" style={{ color: statusColor[a.status] }} />, run: go(() => st.select(id, { fly: true })), score: 1 });
     }
-    out.push({ key: "tour", group: "Actions", title: "Start the guided demo", sub: "Twelve steps through the twin", icon: <Play className="size-3.5" />, run: go(() => st.setTour({ active: true, step: 0 })), score: 1 });
+    out.push({ key: "tour", group: "Actions", title: "Start the guided demo", sub: "Thirteen steps through the twin", icon: <Play className="size-3.5" />, run: go(() => st.setTour({ active: true, step: 0 })), score: 1 });
     out.push({ key: "heat", group: "Actions", title: "Show VPD heat map", sub: "Layer", icon: <Layers className="size-3.5" />, run: go(() => st.setLayer("heat", "vpd")), score: 1 });
     return out;
   }

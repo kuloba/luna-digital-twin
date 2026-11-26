@@ -309,6 +309,15 @@ function ScanGantry({ id, x0, width }: { id: string; x0: number; width: number }
           <boxGeometry args={[0.22, 0.18, 25]} />
           <meshStandardMaterial color={C.steel} />
         </mesh>
+        {/* scan sheet: where the cameras are imaging right now */}
+        <mesh position={[0, 2, 18.6]} rotation={[0, Math.PI / 2, 0]} raycast={() => null}>
+          <planeGeometry args={[25, 4]} />
+          <meshBasicMaterial color={C.luna} transparent opacity={0.12} depthWrite={false} side={2} toneMapped={false} />
+        </mesh>
+        <mesh position={[0, 0.07, 18.6]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+          <planeGeometry args={[0.45, 25]} />
+          <meshBasicMaterial color={C.luna} transparent opacity={0.45} depthWrite={false} toneMapped={false} />
+        </mesh>
         <group ref={pod} position={[0, 3.85, 18.6]}>
           <mesh castShadow>
             <boxGeometry args={[0.55, 0.32, 0.55]} />

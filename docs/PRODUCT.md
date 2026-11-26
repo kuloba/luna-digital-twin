@@ -63,9 +63,10 @@ The demo optimises for the first two. QA and shift leads appear as the people wo
 - **Forecasts:** batch harvest ETA and yield, today's pack-out projection vs. orders.
 
 ### 4.4 Crop vision without the photos
-- **The crop you see is the crop the cameras measured.** LUNA camera rails sweep the glasshouse; each plant's trusses, fruit, flowers, head height, stem diameter and pest flags become a ~1 KB record. The 3D tomato rows, the row strip and the plant card are all drawn from those records, never from images.
+- **The crop you see is the crop the cameras measured.** LUNA camera rails sweep the glasshouse; each plant's trusses, fruit, flowers, head height, stem diameter and pest flags become a record of a few hundred bytes. The 3D tomato rows, the row strip and the plant card are all drawn from those records, never from images.
 - **Freshness is visible.** The gantry is a moving object in the twin. Rows refresh in a wave as it passes; a plant card says "fresh scan" or "from last pass" with the time.
 - **Lenses, not galleries.** Ripeness, yield (kg ready in 7 days), pests and growth recolour the same plants. A grower reads a compartment in one glance instead of scrolling thousands of photos.
+- **From pixels to decisions.** Luna turns the last pass into tomorrow's pick list (rows ranked by fruit at light-red or red), crew-hours to clear it, and rows to hold back for pest scouting. This is where CV pays for itself: labour planned from measurement instead of a walk-through.
 - **Edge-first by design.** Inference runs on `EDGE-01`. Images stay on site for audit and model training; only plant state syncs. In the demo's assumptions a morning of scanning is ~55,000 images (~224 GB) and ~11 MB of synced state, roughly 20,000× less. Remote sites need no fibre, and the UI is instant because it renders state, not pixels.
 
 ### 4.5 Tanks and fertigation
@@ -74,7 +75,7 @@ The demo optimises for the first two. QA and shift leads appear as the people wo
 - Luna converts level and draw into days-to-empty and a reorder before it becomes a problem (stock B: ~2 days).
 
 ### 4.6 Guided demo
-A twelve-beat tour (`Guided demo`) that drives the real UI: one model of the operation → shift brief → VPD drift → ask why → approve and verify → crop vision → a single plant → edge bandwidth → pest pressure → tanks → trace a batch to the truck → switch roles. Built for the pitch, but it doubles as onboarding.
+A thirteen-beat tour (`Guided demo`) that drives the real UI: one model of the operation → shift brief → VPD drift → ask why → approve and verify → crop vision → a single plant → a pick plan from the scans → edge bandwidth → pest pressure → tanks → trace a batch to the truck → switch roles. Built for the pitch, but it doubles as onboarding.
 
 ## 5. Interaction ideas that make it fun
 

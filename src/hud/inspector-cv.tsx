@@ -285,6 +285,43 @@ function PlantCard({ plant, crop }: { plant: Plant; crop: CompartmentCv["crop"] 
           {cv.pest} · pressure {formatNumber(cv.pestLevel * 100)}% · scout to confirm
         </div>
       ) : null}
+      <SyncedRecord plant={plant} />
+    </div>
+  );
+}
+
+/** The payload the edge node syncs for one plant: this is all the twin needs. */
+function plantRecord(plant: Plant) {
+  const cv = plant.seen;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  return {
+    schema: "plant-state/1",
+    plant: plant.id,
+    scanned_at: new Date(plant.scannedAt).toISOString().slice(0, 19) + "Z",
+    source: `CAM-${plant.row.slice(0, 2)}`,
+    head_m: r2(cv.height),
+    stem_mm: r2(cv.stem),
+    flowers: cv.flowers,
+    trusses: cv.trusses.map((t) => [r2(t.h), r2(t.ripeness), t.fruits]),
+    ...(cv.pest && cv.pestLevel > 0.08 ? { pest: { kind: cv.pest, level: r2(cv.pestLevel) } } : {}),
+  };
+}
+
+function SyncedRecord({ plant }: { plant: Plant }) {
+  const [open, setOpen] = useState(false);
+  const record = plantRecord(plant);
+  const bytes = new TextEncoder().encode(JSON.stringify(record)).length;
+  // Keep each truss triple on one line so the record reads like a table.
+  const pretty = JSON.stringify(record, null, 2).replace(/\[\s+([^[\]{}]+?)\s+\]/g, (_, inner: string) => `[${inner.replace(/\s+/g, " ")}]`);
+  return (
+    <div className="mt-2.5 rounded-[8px] bg-panel-2 px-2.5 py-2">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-2 text-left">
+        <span className="text-[11px] font-medium text-ink-2">Synced record</span>
+        <span className="font-mono text-[10.5px] font-medium text-ink">{formatNumber(bytes)} B</span>
+        <span className="truncate text-[10.5px] text-faint">vs ~4.2 MB per photo</span>
+        <span className="ml-auto shrink-0 text-[10.5px] font-medium text-luna-ink">{open ? "Hide" : "View"}</span>
+      </button>
+      {open ? <pre className="scroll-thin mt-2 max-h-[200px] overflow-auto rounded-[6px] bg-[#0f1b2a] px-2.5 py-2 font-mono text-[10px] leading-[1.5] text-[#d7e3f0]">{pretty}</pre> : null}
     </div>
   );
 }
