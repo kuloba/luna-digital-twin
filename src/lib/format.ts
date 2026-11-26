@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { clockNow } from "@/lib/clock";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -13,7 +14,7 @@ export const formatNumber = (v: number, digits = 0) =>
 
 export const formatKg = (kg: number) => (kg >= 10_000 ? `${formatNumber(kg / 1000, 1)} t` : `${formatNumber(kg)} kg`);
 
-export function formatAgo(ms: number, now = Date.now()) {
+export function formatAgo(ms: number, now = clockNow()) {
   const s = Math.max(0, Math.round((now - ms) / 1000));
   if (s < 10) return "just now";
   if (s < 60) return `${s}s ago`;
@@ -23,7 +24,7 @@ export function formatAgo(ms: number, now = Date.now()) {
   return `${h} h ago`;
 }
 
-export function formatEta(iso: string, now = Date.now()) {
+export function formatEta(iso: string, now = clockNow()) {
   const t = new Date(iso).getTime();
   const diff = t - now;
   const abs = Math.abs(diff);

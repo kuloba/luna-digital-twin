@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { BatchTracker } from "@/hud/BatchTracker";
 import { CommandSearch } from "@/hud/CommandSearch";
 import { KpiStrip } from "@/hud/KpiStrip";
@@ -7,6 +7,8 @@ import { Toasts } from "@/hud/Toasts";
 import { Legends, Toolbar } from "@/hud/Toolbar";
 import { TopBar } from "@/hud/TopBar";
 import { Tour } from "@/hud/Tour";
+import { SmallScreen, useSmallScreen } from "@/hud/SmallScreen";
+import { Welcome } from "@/hud/Welcome";
 import { ZoneTable } from "@/hud/ZoneTable";
 import { Scene } from "@/scene/Scene";
 import { ZONES } from "@/sim/layout";
@@ -22,6 +24,9 @@ export function App() {
     return () => clearInterval(t);
   }, [tick]);
   useShortcuts();
+  const small = useSmallScreen();
+  const [anyway, setAnyway] = useState(false);
+  if (small && !anyway) return <SmallScreen onContinue={() => setAnyway(true)} />;
   return (
     <div className="relative h-full w-full">
       <div className="absolute inset-0 z-0">
@@ -37,6 +42,7 @@ export function App() {
         <ZoneTable />
         <Toasts />
         <Tour />
+        <Welcome />
       </div>
       <CommandSearch />
     </div>

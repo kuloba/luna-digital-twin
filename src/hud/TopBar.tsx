@@ -5,6 +5,7 @@ import { cn } from "@/lib/format";
 import { ZONES } from "@/sim/layout";
 import { useTwin } from "@/sim/store";
 import { Kbd, LunaMark, Segmented } from "./ui";
+import { clockNow } from "@/lib/clock";
 
 export function TopBar() {
   return (
@@ -112,15 +113,13 @@ function SearchButton() {
   );
 }
 
-const TZ = new Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value ?? "";
-
 function LiveIndicator() {
   const tick = useTwin((s) => s.sim.tick);
   const running = useTwin((s) => s.running);
   const setRunning = useTwin((s) => s.setRunning);
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState(() => new Date(clockNow()));
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
+    const t = setInterval(() => setNow(new Date(clockNow())), 1000);
     return () => clearInterval(t);
   }, []);
   void tick;
@@ -138,7 +137,9 @@ function LiveIndicator() {
       </div>
       <div className="flex flex-col items-end leading-none whitespace-nowrap">
         <span className="font-mono text-[13px] font-medium text-ink tabular">{now.toLocaleTimeString("en-US", { hour12: false })}</span>
-        <span className="mt-1 text-[10px] text-faint">{now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {TZ}</span>
+        <span className="mt-1 text-[10px] text-faint" title="The demo opens at 10:40 and runs in real time, so the day's story reads the same whenever it is viewed.">
+          {now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · demo clock
+        </span>
       </div>
     </button>
   );

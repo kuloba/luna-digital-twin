@@ -6,6 +6,7 @@ import { twin, useTwin } from "@/sim/store";
 import type { Alert } from "@/sim/types";
 import { askLuna } from "./luna-chat";
 import { EntityChip } from "./RichText";
+import { clockNow } from "@/lib/clock";
 
 /**
  * Transient notifications when Luna raises an alert or verifies a fix.
@@ -25,7 +26,7 @@ export function Toasts() {
   const alerts = useTwin((s) => s.sim.alerts);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const seen = useRef(new Map<string, string>());
-  const mountedAt = useRef(Date.now());
+  const mountedAt = useRef(clockNow());
 
   useEffect(() => {
     const fresh: Toast[] = [];
@@ -33,15 +34,15 @@ export function Toasts() {
       const prev = seen.current.get(a.id);
       if (prev === a.status) continue;
       seen.current.set(a.id, a.status);
-      if (!prev && a.status === "OPEN" && a.createdAt > mountedAt.current + 2500) fresh.push({ id: `${a.id}-open`, kind: "alert", alert: a, at: Date.now() });
-      if (prev && prev !== "RESOLVED" && a.status === "RESOLVED") fresh.push({ id: `${a.id}-ok`, kind: "verified", alert: a, at: Date.now() });
+      if (!prev && a.status === "OPEN" && a.createdAt > mountedAt.current + 2500) fresh.push({ id: `${a.id}-open`, kind: "alert", alert: a, at: clockNow() });
+      if (prev && prev !== "RESOLVED" && a.status === "RESOLVED") fresh.push({ id: `${a.id}-ok`, kind: "verified", alert: a, at: clockNow() });
     }
     if (fresh.length) setToasts((t) => [...fresh, ...t].slice(0, 3));
   }, [alerts]);
 
   useEffect(() => {
     if (!toasts.length) return;
-    const t = setInterval(() => setToasts((ts) => ts.filter((x) => Date.now() - x.at < LIFETIME)), 500);
+    const t = setInterval(() => setToasts((ts) => ts.filter((x) => clockNow() - x.at < LIFETIME)), 500);
     return () => clearInterval(t);
   }, [toasts.length]);
 

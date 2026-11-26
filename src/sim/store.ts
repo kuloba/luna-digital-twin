@@ -3,6 +3,7 @@ import { amrPose, approve, step, trigger } from "./engine";
 import { ZONE_BY_ID } from "./layout";
 import { createInitialState } from "./seed";
 import type { SimState, Vec3, ZoneId } from "./types";
+import { clockNow } from "@/lib/clock";
 
 export type Role = "GROWER" | "MANAGER";
 export type HeatLayer = "vpd" | "temp" | "rh" | "co2" | "ppfd" | null;
@@ -153,7 +154,7 @@ export const useTwin = create<UiState>((set, get) => ({
     const r = sim.amrs[id];
     if (r) {
       // Robots move: frame where the robot is now, not its charge pad.
-      const p = amrPose(r, sim.lastTickAt, Date.now());
+      const p = amrPose(r, sim.lastTickAt, clockNow());
       set({ focus: a.zoneId, camera: { target: [p.x, 0.5, p.z], extent: [30, 2, 22], n: cameraN++ } });
       return;
     }
@@ -205,7 +206,7 @@ export const useTwin = create<UiState>((set, get) => ({
 
   pushChat(m) {
     const id = `c${chatN++}`;
-    set((st) => ({ chat: [...st.chat, { ...m, id, at: Date.now() }] }));
+    set((st) => ({ chat: [...st.chat, { ...m, id, at: clockNow() }] }));
     return id;
   },
 

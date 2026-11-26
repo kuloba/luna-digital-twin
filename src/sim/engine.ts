@@ -4,6 +4,7 @@ import { CHARGE_PADS, STATIONS, ZONES, corridorPath, pathLength, pointAlong } fr
 import { jitter, rand, vpdOf } from "./metrics";
 import type { Alert, AmrMission, AmrRuntime, Asset, Batch, FeedEvent, SimState, StageKey, ZoneId } from "./types";
 import { STAGES } from "./types";
+import { clockNow } from "@/lib/clock";
 
 /**
  * The simulation. `step` advances the whole facility by one second and is a
@@ -14,10 +15,10 @@ import { STAGES } from "./types";
 
 const HISTORY = 90;
 let idCounter = 0;
-const uid = (p: string) => `${p}-${Date.now().toString(36)}-${(idCounter++).toString(36)}`;
+const uid = (p: string) => `${p}-${clockNow().toString(36)}-${(idCounter++).toString(36)}`;
 
 export function feed(s: SimState, tone: FeedEvent["tone"], text: string, assetId?: string) {
-  s.feed = [{ id: uid("ev"), at: Date.now(), tone, text, assetId }, ...s.feed].slice(0, 40);
+  s.feed = [{ id: uid("ev"), at: clockNow(), tone, text, assetId }, ...s.feed].slice(0, 40);
 }
 
 /* ------------------------------------------------------------------ */
@@ -205,7 +206,7 @@ function advanceBatch(s: SimState, b: Batch) {
   b.stageProgress = Math.min(1, b.stageProgress + b.tempo / STAGE_SECONDS[b.stage]);
   if (b.stageProgress < 1) return;
   const idx = STAGE_ORDER.indexOf(b.stage);
-  const now = new Date().toISOString();
+  const now = new Date(clockNow()).toISOString();
   const visit = b.route[idx];
   visit.status = "DONE";
   visit.exitedAt = now;
@@ -229,6 +230,13 @@ function advanceBatch(s: SimState, b: Batch) {
   }
   if (next === "COLD_CHAIN") {
     s.assets["SEAL-01"].activity = `Sealing · ${b.code}`;
+  }
+  // Keep the batch's one-line story in step with where it actually is.
+  if (b.order) {
+    const due = new Date(b.order.dueAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const who = b.order.customer.split(" · ")[0];
+    if (next === "QUALITY") b.headline = `Harvest complete. In QA now — weights and optical grade feed the ${due} ${who} load.`;
+    if (next === "COLD_CHAIN") b.headline = `Passed QA. Sealing and pre-cooling for the ${due} ${who} load on ${b.order.truckId}.`;
   }
   if (next === "HARVEST") {
     s.assets["HRV-01"].batchId = b.id;
@@ -351,7 +359,7 @@ function stepIncidents(s: SimState) {
           zoneId: def.zoneId,
           metricKey: def.metricKey,
           batchIds: body.batchIds,
-          createdAt: Date.now(),
+          createdAt: clockNow(),
           status: "OPEN",
           recommendation: body.recommendation,
         };
@@ -374,7 +382,7 @@ function stepIncidents(s: SimState) {
         const alert = s.alerts.find((a) => a.id === rt!.alertId);
         if (alert) {
           alert.status = "RESOLVED";
-          alert.resolvedAt = Date.now();
+          alert.resolvedAt = clockNow();
           alert.verification = def.verification(s);
           feed(s, "positive", `Resolved: ${alert.recommendation.title}`, alert.assetId);
         }
@@ -485,7 +493,7 @@ function stepKpis(s: SimState) {
 export function step(prev: SimState): SimState {
   const s: SimState = structuredClone(prev);
   s.tick += 1;
-  s.lastTickAt = Date.now();
+  s.lastTickAt = clockNow();
   stepIncidents(s);
   for (const a of Object.values(s.assets)) if (a.kind !== "AMR") stepMetrics(a);
   for (const r of Object.values(s.amrs)) {

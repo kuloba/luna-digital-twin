@@ -7,6 +7,7 @@ import { twin, useTwin } from "@/sim/store";
 import type { CompartmentCv, Plant, SimState } from "@/sim/types";
 import { EntityChip } from "./RichText";
 import { Num, Section } from "./ui";
+import { clockNow } from "@/lib/clock";
 
 /**
  * Inspector bodies built from computer-vision plant state. Nothing here is a
@@ -248,7 +249,7 @@ function PlantCard({ plant, crop }: { plant: Plant; crop: CompartmentCv["crop"] 
   const stages = stagesFor(crop);
   const cv = plant.seen;
   const trusses = [...cv.trusses].sort((a, b) => b.h - a.h);
-  const fresh = Date.now() - plant.scannedAt < 180_000;
+  const fresh = clockNow() - plant.scannedAt < 180_000;
   return (
     <div className="animate-rise rounded-[12px] bg-white p-3 ring-1 ring-[#f3cf95] ring-inset">
       <div className="flex items-center gap-2">
@@ -379,9 +380,9 @@ export function CameraRail({ compId }: { compId: string }) {
 export function EdgeStory() {
   const cv = useTwin((s) => s.sim.cv);
   const { images, rawGb, syncedMb } = useMemo(() => edgeTotals(cv), [cv]);
-  const start = new Date();
+  const start = new Date(clockNow());
   start.setHours(5, 0, 0, 0);
-  const elapsed = Math.max(3600, (Date.now() - start.getTime()) / 1000);
+  const elapsed = Math.max(3600, (clockNow() - start.getTime()) / 1000);
   const rawMbps = (rawGb * 8 * 1024) / elapsed;
   const syncKbps = (syncedMb * 8 * 1024) / elapsed;
   const ratio = (rawGb * 1024) / Math.max(0.001, syncedMb);

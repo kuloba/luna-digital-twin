@@ -8,6 +8,7 @@ import { COMPARTMENTS } from "@/sim/layout";
 import { twin, useTwin, type CvLens } from "@/sim/store";
 import type { CompartmentCv, Plant } from "@/sim/types";
 import { Pickable } from "./primitives";
+import { clockNow } from "@/lib/clock";
 
 /**
  * The glasshouse crop twin. Every plant, truss and fruit drawn here comes
@@ -188,7 +189,7 @@ function Plants({ comp }: { comp: CompartmentCv }) {
       const st = twin();
       const c = st.sim.cv[comp.id];
       const lens = st.cvLens;
-      const now = Date.now();
+      const now = clockNow();
       const f = fruits.current;
       const l = leaves.current;
       const fl = flowers.current;
@@ -295,7 +296,7 @@ function ScanGantry({ id, x0, width }: { id: string; x0: number; width: number }
   useFrame(({ clock }, dt) => {
     const c = twin().sim.cv[id];
     if (!c) return;
-    const target = c.scan + c.scanDir * 0.0065 * Math.min(1, (Date.now() - twin().sim.lastTickAt) / 1000);
+    const target = c.scan + c.scanDir * 0.0065 * Math.min(1, (clockNow() - twin().sim.lastTickAt) / 1000);
     pos.current += (target - pos.current) * Math.min(1, dt * 4);
     if (gantry.current) gantry.current.position.x = x0 + 0.4 + pos.current * (width - 0.8);
     if (pod.current) pod.current.position.z = 18.6 + Math.sin(clock.elapsedTime * 0.9 + x0) * 10.5;

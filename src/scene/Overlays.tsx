@@ -7,6 +7,7 @@ import { C, severityColor } from "@/lib/theme";
 import { COLD_ROOMS, COMPARTMENTS, STATIONS, ZONE_BY_ID, corridorPath, pointAlong } from "@/sim/layout";
 import { twin, useTwin, type HeatLayer } from "@/sim/store";
 import { STAGES, type Asset, type SimState, type StageVisit } from "@/sim/types";
+import { clockNow } from "@/lib/clock";
 
 /* ------------------------------------------------------------------ */
 /* Selection + hover marker                                           */
@@ -67,7 +68,7 @@ function amrPos(id: string): [number, number, number] {
   const r = st.sim.amrs[id];
   if (!r) return st.sim.assets[id].position;
   if (!r.mission) return [r.at[0], 0, r.at[1]];
-  const extra = Math.min(1.2, (Date.now() - st.sim.lastTickAt) / 1000) * r.speed;
+  const extra = Math.min(1.2, (clockNow() - st.sim.lastTickAt) / 1000) * r.speed;
   const p = pointAlong(r.mission.path, Math.min(r.mission.length, r.travelled + extra));
   return [p.x, 0, p.z];
 }

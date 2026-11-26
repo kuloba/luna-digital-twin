@@ -2,6 +2,7 @@ import { createCv } from "./cv";
 import { CHARGE_PADS, COLD_ROOMS, COMPARTMENTS, TANKS, TOWER_ROWS, TOWER_SIZE, ZONE_BY_ID, towerZ } from "./layout";
 import { metric, rand, resetRand, vpdOf } from "./metrics";
 import type { AmrRuntime, Asset, Batch, FeedEvent, Kpis, SimState, StageKey, StageVisit } from "./types";
+import { clockNow } from "@/lib/clock";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -71,7 +72,7 @@ function batchSpecs(now: number): BatchSpec[] {
   const soon = new Date(now + 55 * 60_000);
   return [
     {
-      code: "LET-1124", cropType: "LETTUCE", cropName: "Butterhead Lettuce", variety: "Rex", stage: "HARVEST", stageProgress: 0.38, cycleDay: 35, cycleDays: 35,
+      code: "LET-1124", cropType: "LETTUCE", cropName: "Butterhead Lettuce", variety: "Rex", stage: "HARVEST", stageProgress: 0.78, cycleDay: 35, cycleDays: 35,
       plants: 4_608, trays: 64, forecastKg: 742, gradeA: 0.952, health: "WATCH",
       where: { SEEDING: ["GERM-03", "SEED-01"], CULTIVATION: towers("C", 1, 4), HARVEST: ["HRV-01", "CUT-01"], QUALITY: ["QA-01", "QA-02"], COLD_CHAIN: ["SEAL-01", "CR-2", "TRK-2"] },
       order: { id: "SO-55812", customer: "Cascade Fresh Markets · Tukwila DC", cases: 1_240, truckId: "TRK-2", dueAt: today14.toISOString() },
@@ -438,7 +439,7 @@ function buildKpis(now: number): Kpis {
   };
 }
 
-export function createInitialState(now = Date.now()): SimState {
+export function createInitialState(now = clockNow()): SimState {
   resetRand();
   const batches: Record<string, Batch> = {};
   for (const spec of batchSpecs(now)) {

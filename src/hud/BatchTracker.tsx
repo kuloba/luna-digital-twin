@@ -77,6 +77,13 @@ export function BatchTracker() {
   );
 }
 
+/** Time left in a stage, from its planned length and live progress. */
+function left(v: StageVisit, progress: number) {
+  const ms = Math.max(0, (1 - progress) * (new Date(v.exitedAt).getTime() - new Date(v.enteredAt).getTime()));
+  const mins = Math.round(ms / 60_000);
+  return mins < 60 ? `${Math.max(1, mins)}m` : `${Math.round(mins / 60)}h`;
+}
+
 const continuous = (b: Batch) => (b.cropType === "TOMATO" || b.cropType === "CUCUMBER") && b.stage === "CULTIVATION";
 
 /** High-wire crops are picked continuously — show what the cameras say is coming. */
@@ -134,7 +141,7 @@ function Step({ v, i, last, progress, accent, label }: { v: StageVisit; i: numbe
         )}
       </div>
       <span className={cn("mt-1.5 text-[11.5px] font-medium transition-colors group-hover:text-luna-ink", done || active ? "text-ink" : "text-faint")}>{st.short}</span>
-      <span className={cn("font-mono text-[9.5px] whitespace-nowrap tabular", active ? "text-luna-ink" : "text-faint")}>{label ?? (active ? `${formatNumber(progress * 100)}% · ${formatEta(v.exitedAt).replace("in ", "").replace(" ", "")} left` : done ? formatDayTime(v.exitedAt) : formatDayTime(v.enteredAt))}</span>
+      <span className={cn("font-mono text-[9.5px] whitespace-nowrap tabular", active ? "text-luna-ink" : "text-faint")}>{label ?? (active ? `${formatNumber(progress * 100)}% · ${left(v, progress)} left` : done ? formatDayTime(v.exitedAt) : formatDayTime(v.enteredAt))}</span>
     </button>
   );
 }

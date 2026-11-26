@@ -5,6 +5,7 @@ import { C } from "@/lib/theme";
 import { amrPose } from "@/sim/engine";
 import { twin } from "@/sim/store";
 import { Pickable } from "./primitives";
+import { clockNow } from "@/lib/clock";
 
 const IDS = Array.from({ length: 10 }, (_, i) => `AMR-${String(i + 1).padStart(2, "0")}`);
 
@@ -29,7 +30,7 @@ function Amr({ id }: { id: string }) {
     const r = st.sim.amrs[id];
     const a = st.sim.assets[id];
     if (!r || !a || !root.current) return;
-    const p = amrPose(r, st.sim.lastTickAt, Date.now());
+    const p = amrPose(r, st.sim.lastTickAt, clockNow());
     const g = root.current;
     g.position.x += (p.x - g.position.x) * Math.min(1, dt * 10);
     g.position.z += (p.z - g.position.z) * Math.min(1, dt * 10);

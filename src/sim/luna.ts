@@ -4,6 +4,7 @@ import { inBand } from "./metrics";
 import type { Role } from "./store";
 import type { Alert, Asset, SimState } from "./types";
 import { STAGES } from "./types";
+import { clockNow } from "@/lib/clock";
 
 /**
  * Luna's language layer. There is no model behind it in the demo; every
@@ -15,7 +16,7 @@ import { STAGES } from "./types";
 const open = (s: SimState) => s.alerts.filter((a) => a.status === "OPEN");
 const sevRank = (a: Alert) => (a.severity === "CRITICAL" ? 0 : a.severity === "WARNING" ? 1 : 2);
 
-export function greeting(now = new Date()) {
+export function greeting(now = new Date(clockNow())) {
   const h = now.getHours();
   return h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 }

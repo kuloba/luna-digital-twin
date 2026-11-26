@@ -14,6 +14,7 @@ import { Inspector } from "./Inspector";
 import { askLuna } from "./luna-chat";
 import { EntityChip, RichText, textLength } from "./RichText";
 import { Eyebrow, LunaMark, Num, Section, Sparkline } from "./ui";
+import { clockNow } from "@/lib/clock";
 
 export function RightPanel() {
   const panel = useTwin((s) => s.rightPanel);
@@ -61,13 +62,13 @@ function Brief() {
   const operator = useTwin((s) => s.operator);
   const sim = useTwin((s) => s.sim);
   const brief = useMemo(() => shiftBrief(sim, role), [sim, role]);
-  const now = Date.now();
+  const now = clockNow();
   const cards = sim.alerts.filter((a) => a.status !== "RESOLVED" || (a.resolvedAt && now - a.resolvedAt < 40_000)).sort((a, b) => rank(a) - rank(b));
   const first = operator.split(" ")[0];
   return (
     <div className="scroll-thin flex-1 overflow-y-auto px-4 pt-4 pb-6">
       <Eyebrow>
-        Shift brief · {new Date().toLocaleDateString("en-US", { weekday: "long" })} {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}
+        Shift brief · {new Date(clockNow()).toLocaleDateString("en-US", { weekday: "long" })} {new Date(clockNow()).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })}
       </Eyebrow>
       <h2 className="mt-2 font-serif text-[30px] leading-[1.05] tracking-[-0.01em] text-ink">
         {greeting()}, {first}.

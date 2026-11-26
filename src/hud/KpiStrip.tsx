@@ -4,6 +4,7 @@ import { cn, formatNumber } from "@/lib/format";
 import { summarise } from "@/sim/cv";
 import { useTwin } from "@/sim/store";
 import { Num, Sparkline } from "./ui";
+import { clockNow } from "@/lib/clock";
 
 export function KpiStrip() {
   const role = useTwin((s) => s.role);
@@ -35,7 +36,7 @@ export function KpiStrip() {
 
 /** Share of the day's plan that should be harvested by now (05:00–17:00 ramp). */
 function paceShare() {
-  const d = new Date();
+  const d = new Date(clockNow());
   const h = d.getHours() + d.getMinutes() / 60;
   return Math.min(1, Math.max(0.18, (h - 5) / 12));
 }

@@ -7,6 +7,7 @@ import { statusColor } from "@/lib/theme";
 import { pointAlong } from "@/sim/layout";
 import { twin, useTwin } from "@/sim/store";
 import type { Asset, SimState } from "@/sim/types";
+import { clockNow } from "@/lib/clock";
 
 /**
  * Spatial tags: status chips anchored to live assets. Density follows the
@@ -113,7 +114,7 @@ function Tag({ id }: { id: string }) {
       let x = r.at[0];
       let z = r.at[1];
       if (r.mission) {
-        const extra = Math.min(1.2, (Date.now() - st.sim.lastTickAt) / 1000) * r.speed;
+        const extra = Math.min(1.2, (clockNow() - st.sim.lastTickAt) / 1000) * r.speed;
         const p = pointAlong(r.mission.path, Math.min(r.mission.length, r.travelled + extra));
         x = p.x;
         z = p.z;

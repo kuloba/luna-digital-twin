@@ -1,5 +1,6 @@
 import { formatClock } from "@/lib/format";
 import type { MetricKey, Recommendation, Severity, SimState, ZoneId } from "./types";
+import { clockNow } from "@/lib/clock";
 
 /**
  * Scripted operational incidents. Each one drifts a real metric out of band,
@@ -87,7 +88,7 @@ export const INCIDENTS: IncidentDef[] = [
         batchIds: ["LET-1124", "LET-1127", "STR-1102"],
         recommendation: {
           title: "Reset HVAC-V2 stage 2 and dim Room V2 LEDs to 85 % for 40 min",
-          rationale: `Stage 2 compressor tripped at ${formatClock(Date.now() - 4 * 60_000)}. Head pressure is back in range so a remote reset is safe. Dimming cuts ~9 kW of heat load while the coil pulls the room down; the DLI shortfall is recovered by extending the photoperiod 12 min tonight.`,
+          rationale: `Stage 2 compressor tripped at ${formatClock(clockNow() - 4 * 60_000)}. Head pressure is back in range so a remote reset is safe. Dimming cuts ~9 kW of heat load while the coil pulls the room down; the DLI shortfall is recovered by extending the photoperiod 12 min tonight.`,
           steps: [
             "Reset HVAC-V2 cooling stage 2 (remote · interlocks clear)",
             "Dim Room V2 LEDs 100 % → 85 % for 40 min",

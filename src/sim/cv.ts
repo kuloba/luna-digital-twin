@@ -1,6 +1,7 @@
 import { COMPARTMENTS } from "./layout";
 import { rand } from "./metrics";
 import type { CompartmentCv, PestKind, Plant, PlantCv, RowCv, SimState } from "./types";
+import { clockNow } from "@/lib/clock";
 
 /**
  * Computer-vision crop state for the glasshouse.
@@ -79,7 +80,7 @@ function makePlant(comp: string, crop: CompartmentCv["crop"], row: number, idx: 
     pest,
     pestLevel,
   };
-  return { id: `${comp}-R${String(row + 1).padStart(2, "0")}-P${String(idx + 1).padStart(2, "0")}`, row: `${comp}-R${String(row + 1).padStart(2, "0")}`, idx, x, z, live, seen: structuredClone(live), scannedAt: Date.now() - (2 + rand() * 4) * 3_600_000 };
+  return { id: `${comp}-R${String(row + 1).padStart(2, "0")}-P${String(idx + 1).padStart(2, "0")}`, row: `${comp}-R${String(row + 1).padStart(2, "0")}`, idx, x, z, live, seen: structuredClone(live), scannedAt: clockNow() - (2 + rand() * 4) * 3_600_000 };
 }
 
 export function createCv(): Record<string, CompartmentCv> {
@@ -111,7 +112,7 @@ export function createCv(): Record<string, CompartmentCv> {
 const SCAN_SPEED = 0.0065; // fraction of compartment per second
 
 export function stepCv(s: SimState) {
-  const now = Date.now();
+  const now = clockNow();
   for (const comp of Object.values(s.cv)) {
     // Crop grows: fruit ripens a little; ripe fruit in G3's picking row gets harvested.
     for (const p of Object.values(comp.plants)) {
