@@ -1,7 +1,7 @@
 import type { ThreeEvent } from "@react-three/fiber";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { Color, ExtrudeGeometry, type Group, type InstancedMesh, type Mesh, Object3D, Shape } from "three";
+import { CanvasTexture, Color, ExtrudeGeometry, type Group, type InstancedMesh, type Mesh, Object3D, Shape } from "three";
 import { C } from "@/lib/theme";
 import { CANOPY_HIGH, CANOPY_LOW, CUCUMBER_STAGES, RIPENESS_STAGES, rowYield } from "@/sim/cv";
 import { COMPARTMENTS } from "@/sim/layout";
@@ -288,11 +288,30 @@ function Plants({ comp }: { comp: CompartmentCv }) {
   );
 }
 
+const WAKE_W = 4.5;
+let wakeTex: CanvasTexture | undefined;
+/** Horizontal alpha ramp: opaque at the gantry, clear four metres back. */
+function wakeTexture() {
+  if (wakeTex) return wakeTex;
+  const c = document.createElement("canvas");
+  c.width = 64;
+  c.height = 1;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createLinearGradient(0, 0, 64, 0);
+  g.addColorStop(0, "rgba(255,255,255,0)");
+  g.addColorStop(1, "rgba(255,255,255,1)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 1);
+  wakeTex = new CanvasTexture(c);
+  return wakeTex;
+}
+
 /** LUNA camera rail: a gantry sweeping the compartment with a camera pod. */
 function ScanGantry({ id, x0, width }: { id: string; x0: number; width: number }) {
   const gantry = useRef<Group>(null);
   const pod = useRef<Group>(null);
   const cone = useRef<Mesh>(null);
+  const wake = useRef<Mesh>(null);
   const pos = useRef(0);
   useFrame(({ clock }, dt) => {
     const c = twin().sim.cv[id];
@@ -300,6 +319,14 @@ function ScanGantry({ id, x0, width }: { id: string; x0: number; width: number }
     const target = c.scan + c.scanDir * 0.0065 * Math.min(1, (clockNow() - twin().sim.lastTickAt) / 1000);
     pos.current += (target - pos.current) * Math.min(1, dt * 4);
     if (gantry.current) gantry.current.position.x = x0 + 0.4 + pos.current * (width - 0.8);
+    if (wake.current) {
+      // Trail the gantry, fading away from it, on whichever side it has already passed.
+      const dir = c.scanDir;
+      const room = dir > 0 ? pos.current * (width - 0.8) : (1 - pos.current) * (width - 0.8);
+      const len = Math.max(0.01, Math.min(WAKE_W, room));
+      wake.current.scale.x = (len / WAKE_W) * (dir > 0 ? 1 : -1);
+      wake.current.position.x = -dir * (len / 2);
+    }
     if (pod.current) pod.current.position.z = 18.6 + Math.sin(clock.elapsedTime * 0.9 + x0) * 10.5;
     if (cone.current) (cone.current.material as unknown as { opacity: number }).opacity = 0.12 + Math.sin(clock.elapsedTime * 5) * 0.04;
   });
@@ -319,6 +346,11 @@ function ScanGantry({ id, x0, width }: { id: string; x0: number; width: number }
         <mesh position={[0, 0.07, 18.6]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
           <planeGeometry args={[0.45, 25]} />
           <meshBasicMaterial color={C.luna} transparent opacity={0.45} depthWrite={false} toneMapped={false} />
+        </mesh>
+        {/* Wake: the rows just behind the gantry were re-measured seconds ago. */}
+        <mesh ref={wake} position={[0, 3.42, 18.6]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null} renderOrder={4}>
+          <planeGeometry args={[WAKE_W, 25]} />
+          <meshBasicMaterial map={wakeTexture()} color={C.luna} transparent opacity={0.5} depthWrite={false} toneMapped={false} />
         </mesh>
         <group ref={pod} position={[0, 3.85, 18.6]}>
           <mesh castShadow>
