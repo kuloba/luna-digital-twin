@@ -46,9 +46,11 @@ export function Toasts() {
     return () => clearInterval(t);
   }, [toasts.length]);
 
-  // During the guided demo one toast at a time is plenty: the story is on the card.
+  // During the guided demo the card tells the story: show one toast at a
+  // time, and only a verification or news about what is on screen.
   const touring = useTwin((s) => s.tour.active);
-  const shown = touring ? toasts.slice(0, 1) : toasts;
+  const selectedId = useTwin((s) => s.selectedId);
+  const shown = touring ? toasts.filter((t) => t.kind === "verified" || t.alert.assetId === selectedId).slice(0, 1) : toasts;
   const dismiss = (id: string) => setToasts((ts) => ts.filter((x) => x.id !== id));
 
   return (
