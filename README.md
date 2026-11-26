@@ -11,7 +11,9 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-Press **Guided demo** in the top bar for the 13-step story, or explore on your own with **⌘K**.
+Press **Guided demo** in the top bar for the 13-step story, or explore on your own with **⌘K**. Add `?tour` to the URL to open straight into the demo (`?tour=8` opens step 8).
+
+The twin opens at 10:40 on a demo clock and runs in real time from there, so the morning brief, the harvest under way and the 14:00 truck read the same whenever it is viewed. `src/lib/clock.ts` is the one line to change for a live site.
 
 ## What to look at
 
