@@ -210,8 +210,9 @@ function Tiles({ title, a, keys, compact }: { title: ReactNode; a: Asset; keys: 
   return (
     <Section title={title}>
       <div className="grid grid-cols-2 gap-2">
-        {ms.map((m) => (
-          <MetricTile key={m.key} metric={m} compact={compact} />
+        {ms.map((m, i) => (
+          // An odd last tile spans the row instead of leaving a hole beside it.
+          <MetricTile key={m.key} metric={m} compact={compact} className={cn(i === ms.length - 1 && ms.length % 2 === 1 && "col-span-2")} />
         ))}
       </div>
     </Section>
