@@ -1,3 +1,4 @@
+import { forecastTotals, kgShort, useForecast } from "./Forecast";
 import { Camera, Sprout, Truck, Bot, Gauge, Award } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn, formatNumber } from "@/lib/format";
@@ -99,9 +100,12 @@ function VisionCard() {
         <span className="text-[11.5px] font-medium text-muted">Crop vision · tomatoes</span>
         <span className="ml-auto rounded-full bg-luna-soft px-1.5 py-px font-mono text-[9.5px] text-luna-ink">EDGE</span>
       </div>
-      <div className="flex items-baseline gap-1">
-        <Num value={ready / 1000} digits={1} className="font-mono text-[24px] leading-none font-medium tracking-[-0.03em] text-ink" />
-        <span className="text-[11px] text-muted">t ready · next 7 d</span>
+      <div className="flex items-end justify-between gap-2">
+        <div className="flex items-baseline gap-1">
+          <Num value={ready / 1000} digits={1} className="font-mono text-[24px] leading-none font-medium tracking-[-0.03em] text-ink" />
+          <span className="text-[11px] whitespace-nowrap text-muted">t ready · 7 d</span>
+        </div>
+        <ForecastSpark />
       </div>
       <div className="flex h-1.5 w-full overflow-hidden rounded-full">
         {total.map((v, i) => (
@@ -115,5 +119,18 @@ function VisionCard() {
         <span className="text-luna-ink opacity-0 transition group-hover:opacity-100">Open →</span>
       </div>
     </button>
+  );
+}
+
+/** 14 tiny bars: tomato kg coming ready per day, from the cameras' last pass. Week two is lighter. */
+function ForecastSpark() {
+  const t = forecastTotals(useForecast(["G1", "G2"]));
+  const max = Math.max(...t.days, 1);
+  return (
+    <div className="flex h-[22px] w-[64px] shrink-0 items-end gap-px" title={`Tomatoes, next 14 days: ${kgShort(t.week1 + t.week2)} (from camera ripeness)`} aria-label="14-day tomato forecast">
+      {t.days.map((v, i) => (
+        <span key={i} className="min-w-0 flex-1 rounded-t-[1.5px]" style={{ height: `${Math.max(8, (v / max) * 100)}%`, background: i < 7 ? "#e0703f" : "#f1b494" }} />
+      ))}
+    </div>
   );
 }
