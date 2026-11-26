@@ -22,7 +22,12 @@ export function KpiStrip() {
         ];
   return (
     <div className="pointer-events-auto absolute top-[88px] left-4 z-20 flex gap-2.5">
-      {cards}
+      {cards.map((c, i) => (
+        // Narrow screens keep the headline KPI and crop vision; the rest return at 1200 px.
+        <div key={c.key} className={i === 0 ? "flex" : "hidden min-[1200px]:flex"}>
+          {c}
+        </div>
+      ))}
       <VisionCard />
     </div>
   );
@@ -38,7 +43,7 @@ function paceShare() {
 function Kpi({ icon, label, value, unit, digits, delta, deltaLabel, note, spark }: { icon: ReactNode; label: string; value: number; unit: string; digits: number; delta?: number; deltaLabel?: string; note?: string; spark: number[] }) {
   const up = (delta ?? 0) >= 0;
   return (
-    <div className="flex w-[212px] flex-col gap-2 px-3.5 pt-3 pb-3 panel">
+    <div className="flex w-[184px] flex-col gap-2 px-3.5 pt-3 pb-3 panel 2xl:w-[212px]">
       <div className="flex items-center gap-1.5 text-muted">
         <span className="flex size-5 items-center justify-center rounded-md bg-[#f1f4f7] text-ink-2">{icon}</span>
         <span className="text-[11.5px] font-medium">{label}</span>
@@ -84,7 +89,7 @@ function VisionCard() {
         flyToZone("GH");
         setCvLens("ripeness");
       }}
-      className="group flex w-[248px] flex-col gap-2 px-3.5 pt-3 pb-3 text-left transition hover:-translate-y-px panel"
+      className="group flex w-[220px] flex-col gap-2 px-3.5 pt-3 pb-3 text-left transition hover:-translate-y-px panel 2xl:w-[248px]"
     >
       <div className="flex items-center gap-1.5">
         <span className="flex size-5 items-center justify-center rounded-md bg-luna-soft text-luna-ink">
@@ -103,8 +108,8 @@ function VisionCard() {
         ))}
       </div>
       <div className="flex items-center justify-between text-[10.5px] text-faint">
-        <span className="font-mono tabular">
-          {formatNumber(images)} img · {formatNumber(rawGb)} GB on-site
+        <span className="font-mono whitespace-nowrap tabular" title="Images stay on the edge node; only plant state syncs">
+          {formatNumber(images)} img · {formatNumber(rawGb)} GB<span className="hidden 2xl:inline"> on-site</span>
         </span>
         <span className="text-luna-ink opacity-0 transition group-hover:opacity-100">Open →</span>
       </div>

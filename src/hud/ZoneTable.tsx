@@ -43,7 +43,7 @@ export function ZoneTable() {
   const sim = useTwin((s) => s.sim);
   const zoneLabel = focus === "SITE" ? "Whole campus" : ZONE_BY_ID[focus].short;
   return (
-    <div data-tour="table" className="pointer-events-auto absolute right-[420px] bottom-4 left-[496px] z-20 flex h-[196px] min-w-0 flex-col overflow-hidden panel">
+    <div data-tour="table" className="pointer-events-auto absolute right-[388px] bottom-4 left-[448px] z-20 hidden h-[196px] min-w-0 flex-col overflow-hidden panel min-[1200px]:flex 2xl:right-[420px] 2xl:left-[496px]">
       <div className="flex items-center gap-2 border-b border-line px-2 py-1.5">
         <div className="scroll-thin flex min-w-0 flex-1 gap-0.5 overflow-x-auto">
           {TABS.map((t) => (
@@ -52,7 +52,7 @@ export function ZoneTable() {
             </button>
           ))}
         </div>
-        <span className="hidden shrink-0 pr-1.5 text-[10.5px] text-faint xl:inline">{zoneLabel}</span>
+        <span className="hidden shrink-0 pr-1.5 text-[10.5px] text-faint 2xl:inline">{zoneLabel}</span>
       </div>
       <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">
         <TableBody tab={tab} sim={sim} focus={focus} />

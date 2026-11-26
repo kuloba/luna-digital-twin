@@ -53,7 +53,7 @@ function ZoneSwitcher() {
       <button type="button" onClick={() => setOpen((v) => !v)} className="flex h-9 items-center gap-2 rounded-[10px] px-2.5 text-left transition-colors hover:bg-[#f1f4f7]">
         <div className="flex flex-col leading-none">
           <span className="text-[10px] font-medium tracking-[0.06em] text-faint uppercase">{focus === "SITE" ? "Site" : "Zone"}</span>
-          <span className="mt-1 text-[13px] font-medium text-ink">{label}</span>
+          <span className="mt-1 block max-w-[150px] truncate text-[13px] font-medium whitespace-nowrap text-ink">{label}</span>
         </div>
         <ChevronDown className={cn("size-4 text-muted transition-transform", open && "rotate-180")} />
       </button>
@@ -98,7 +98,7 @@ function SearchButton() {
     <button
       type="button"
       onClick={() => setSearchOpen(true)}
-      className="ml-1 flex h-9 w-[min(440px,32vw)] items-center gap-2 rounded-[10px] bg-[#f3f6f8] px-3 text-left text-[12.5px] text-muted ring-1 ring-transparent transition hover:ring-line-2"
+      className="ml-1 flex h-9 w-[min(440px,24vw)] min-w-[180px] items-center gap-2 rounded-[10px] 2xl:w-[min(440px,30vw)] bg-[#f3f6f8] px-3 text-left text-[12.5px] text-muted ring-1 ring-transparent transition hover:ring-line-2"
     >
       <Search className="size-4 text-faint" />
       <span className="flex-1 truncate">Search batch IDs, towers, rows, sensors, AMRs…</span>
@@ -133,10 +133,10 @@ function LiveIndicator() {
         </span>
         <div className="flex flex-col leading-none">
           <span className="text-[11.5px] font-medium text-ink">{running ? "Live" : "Paused"}</span>
-          <span className="mt-1 font-mono text-[9.5px] text-faint">1,284 sensors · 1 Hz</span>
+          <span className="mt-1 font-mono text-[9.5px] whitespace-nowrap text-faint">1,284 sensors · 1 Hz</span>
         </div>
       </div>
-      <div className="flex flex-col items-end leading-none">
+      <div className="flex flex-col items-end leading-none whitespace-nowrap">
         <span className="font-mono text-[13px] font-medium text-ink tabular">{now.toLocaleTimeString("en-US", { hour12: false })}</span>
         <span className="mt-1 text-[10px] text-faint">{now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · {TZ}</span>
       </div>
@@ -152,10 +152,19 @@ function RoleSwitch() {
       value={role}
       onChange={setRole}
       options={[
-        { value: "GROWER", label: "Head Grower" },
-        { value: "MANAGER", label: "Facility Mgr" },
+        { value: "GROWER", label: <RoleLabel short="Grower" long="Head Grower" /> },
+        { value: "MANAGER", label: <RoleLabel short="Manager" long="Facility Mgr" /> },
       ]}
     />
+  );
+}
+
+function RoleLabel({ short, long }: { short: string; long: string }) {
+  return (
+    <>
+      <span className="2xl:hidden">{short}</span>
+      <span className="hidden 2xl:inline">{long}</span>
+    </>
   );
 }
 
@@ -166,7 +175,7 @@ function TourButton() {
     <button
       type="button"
       onClick={() => setTour({ active: !tour.active, step: 0 })}
-      className="flex h-8 items-center gap-1.5 rounded-[10px] bg-ink px-3 text-[12px] font-medium text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.15),0_1px_2px_rgb(0_0_0/0.2)] transition hover:bg-[#1e2b3c]"
+      className="flex h-8 shrink-0 items-center gap-1.5 rounded-[10px] bg-ink px-3 text-[12px] font-medium whitespace-nowrap text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.15),0_1px_2px_rgb(0_0_0/0.2)] transition hover:bg-[#1e2b3c]"
     >
       <Play className="size-3 fill-current" />
       {tour.active ? "Exit demo" : "Guided demo"}

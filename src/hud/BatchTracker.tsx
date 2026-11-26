@@ -25,7 +25,7 @@ export function BatchTracker() {
   const next = b.route.find((v) => v.status === "PLANNED");
   const color = cropColor[b.cropType];
   return (
-    <div data-tour="batch" className="pointer-events-auto absolute bottom-4 left-4 z-20 flex h-[196px] w-[468px] flex-col px-4 pt-3 pb-3 panel">
+    <div data-tour="batch" className="pointer-events-auto absolute bottom-4 left-4 z-20 flex h-[196px] w-[420px] flex-col 2xl:w-[468px] px-4 pt-3 pb-3 panel">
       <div className="flex items-center gap-2.5">
         <BatchPicker current={batchId} />
         <div className="min-w-0 flex-1 leading-tight">
@@ -96,7 +96,7 @@ function Stepper({ b, accent }: { b: Batch; accent: string }) {
   return (
     <div className="relative mt-3.5 grid grid-cols-5">
       {b.route.map((v, i) => (
-        <Step key={v.stage} v={v} i={i} last={i === b.route.length - 1} progress={b.stageProgress} accent={accent} label={continuous(b) && v.status === "ACTIVE" ? `in production · wk ${Math.ceil(b.cycleDay / 7)}` : undefined} />
+        <Step key={v.stage} v={v} i={i} last={i === b.route.length - 1} progress={b.stageProgress} accent={accent} label={continuous(b) && v.status === "ACTIVE" ? `picking · wk ${Math.ceil(b.cycleDay / 7)}` : undefined} />
       ))}
     </div>
   );
@@ -134,7 +134,7 @@ function Step({ v, i, last, progress, accent, label }: { v: StageVisit; i: numbe
         )}
       </div>
       <span className={cn("mt-1.5 text-[11.5px] font-medium transition-colors group-hover:text-luna-ink", done || active ? "text-ink" : "text-faint")}>{st.short}</span>
-      <span className={cn("font-mono text-[9.5px] tabular", active ? "text-luna-ink" : "text-faint")}>{label ?? (active ? `${formatNumber(progress * 100)}% · ${formatEta(v.exitedAt).replace("in ", "")} left` : done ? formatDayTime(v.exitedAt) : formatDayTime(v.enteredAt))}</span>
+      <span className={cn("font-mono text-[9.5px] whitespace-nowrap tabular", active ? "text-luna-ink" : "text-faint")}>{label ?? (active ? `${formatNumber(progress * 100)}% · ${formatEta(v.exitedAt).replace("in ", "").replace(" ", "")} left` : done ? formatDayTime(v.exitedAt) : formatDayTime(v.enteredAt))}</span>
     </button>
   );
 }

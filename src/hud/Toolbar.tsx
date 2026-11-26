@@ -179,7 +179,7 @@ export function Legends() {
   const showLens = focus === "GH" || selectedKind === "ROW" || selectedKind === "COMPARTMENT";
   if (!heat && !showLens) return null;
   return (
-    <div className="pointer-events-auto absolute bottom-[224px] left-4 z-20 flex flex-col gap-2">
+    <div className="pointer-events-auto absolute bottom-[224px] left-4 z-20 flex flex-col gap-2 [@media(max-height:940px)]:left-[72px]">
       {showLens ? <LensLegend lens={lens} /> : null}
       {heat ? (
         <div className="w-[260px] px-3 py-2.5 panel">

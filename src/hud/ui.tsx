@@ -161,7 +161,7 @@ export function Segmented<T extends string>({ value, options, onChange, classNam
           type="button"
           onClick={() => onChange(o.value)}
           className={cn(
-            "relative rounded-[8px] font-medium transition-colors",
+            "relative rounded-[8px] font-medium whitespace-nowrap transition-colors",
             size === "sm" ? "h-6 px-2 text-[11px]" : "h-7 px-2.5 text-[12px]",
             value === o.value ? "bg-white text-ink shadow-[0_0_0_1px_rgb(15_27_42/0.08),0_1px_2px_rgb(15_27_42/0.08)]" : "text-muted hover:text-ink",
           )}

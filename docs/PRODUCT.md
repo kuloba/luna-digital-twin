@@ -62,8 +62,19 @@ The demo optimises for the first two. QA and shift leads appear as the people wo
 - **Closed-loop recommendations:** for each anomaly Luna proposes a concrete action (e.g. *"Raise V2 dehumidification stage +1 and lower lights to 85% for 40 min"*). Approve → the simulation applies it → telemetry recovers → the alert resolves with a verification note.
 - **Forecasts:** batch harvest ETA and yield, today's pack-out projection vs. orders.
 
-### 4.4 Guided demo
-A 90-second scripted tour (`Start tour`) that tells the story: morning brief → VPD drift → Luna diagnosis → approve fix → watch recovery → trace a batch to the truck. Built for the pitch, but it doubles as onboarding.
+### 4.4 Crop vision without the photos
+- **The crop you see is the crop the cameras measured.** LUNA camera rails sweep the glasshouse; each plant's trusses, fruit, flowers, head height, stem diameter and pest flags become a ~1 KB record. The 3D tomato rows, the row strip and the plant card are all drawn from those records, never from images.
+- **Freshness is visible.** The gantry is a moving object in the twin. Rows refresh in a wave as it passes; a plant card says "fresh scan" or "from last pass" with the time.
+- **Lenses, not galleries.** Ripeness, yield (kg ready in 7 days), pests and growth recolour the same plants. A grower reads a compartment in one glance instead of scrolling thousands of photos.
+- **Edge-first by design.** Inference runs on `EDGE-01`. Images stay on site for audit and model training; only plant state syncs. In the demo's assumptions a morning of scanning is ~55,000 images (~224 GB) and ~11 MB of synced state, roughly 20,000× less. Remote sites need no fibre, and the UI is instant because it renders state, not pixels.
+
+### 4.5 Tanks and fertigation
+- Eight tanks in the yard (rain, stock A/B, acid, mix, drain, CO₂, heat buffer) with live level, EC and pH, plus which rooms each one feeds.
+- The mix tank visibly fills and drains on its irrigation cycle; dosing stations show their recipe.
+- Luna converts level and draw into days-to-empty and a reorder before it becomes a problem (stock B: ~2 days).
+
+### 4.6 Guided demo
+A twelve-beat tour (`Guided demo`) that drives the real UI: one model of the operation → shift brief → VPD drift → ask why → approve and verify → crop vision → a single plant → edge bandwidth → pest pressure → tanks → trace a batch to the truck → switch roles. Built for the pitch, but it doubles as onboarding.
 
 ## 5. Interaction ideas that make it fun
 
@@ -72,18 +83,26 @@ A 90-second scripted tour (`Start tour`) that tells the story: morning brief →
 - **Heat as weather.** Climate overlays animate softly like a weather map instead of flashing.
 - **Breathing alerts.** Out-of-band assets get a slow pulse ring on the floor, not a blinking icon.
 - **Ticking numbers.** Values interpolate rather than jump; deltas flash briefly in green/red.
-- **Keyboard-first.** `⌘K` search, `1–6` zones, `Esc` deselect, `L` toggle labels, `H` heatmap, `/` Ask Luna.
+- **Keyboard-first.** `⌘K` or `/` search, `0` site, `1–9` zones, `A` Ask Luna, `H` heat map, `V` crop-vision lens, `T` trace, `F` flows, `L` labels, `Esc` deselect.
 - **Role lens.** One toggle re-weights KPIs, tags and default overlay for Grower vs Facility Manager.
 
 ## 6. Data model (mock, GraphQL-shaped)
 
 `Site → Zone → Room → Asset` with typed assets (`GrowTower`, `Rack`, `DosingStation`, `ClimateUnit`, `Amr`, `Harvester`, `Conveyor`, `QaStation`, `ColdRoom`, `Truck`, `CameraRail`). `Batch` follows the existing LUNA type (code, crop, variety, stage, health, briefing, anomalies) with a `route: StageEvent[]` for traceability. Telemetry is `MetricSeries` keyed by asset. Alerts are `Anomaly` + `RequiredAction`. The simulation (`src/sim`) owns all of it and ticks at 1 Hz; swapping in a real GraphQL subscription replaces the tick, not the components.
 
-## 7. Out of scope for the demo
+## 7. Why this matters for a CV-first grow platform
+
+1. **Computer vision becomes operational, not archival.** Today CV output tends to live in image galleries and charts. In the twin it is the crop itself: a grower sees ripeness, yield and pests where they are, and acts from the same screen.
+2. **Bandwidth stops being a sales blocker.** Shipping plant state instead of photos means a remote glasshouse on a cellular uplink gets the same experience as a site on fibre.
+3. **Speed builds trust.** Rendering state is instant at any zoom. Operators who wait for images stop looking; operators who get answers in a glance come back every hour.
+4. **The loop closes in one place.** Detect, explain, act and verify happen inside the twin with an owner and an audit trail, which is what turns insight into yield.
+5. **It scales across sites.** The same plant-state contract works for one compartment or a portfolio; the twin is a view over data the platform already produces.
+
+## 8. Out of scope for the demo
 
 Auth, real control writes, multi-site, historical analytics beyond 24 h sparklines, mobile layout beyond tablet.
 
-## 8. Success criteria for the pitch
+## 9. Success criteria for the pitch
 
 1. A stranger understands what the site does within 10 seconds of the page loading.
 2. The "detect → explain → act → verify" loop is demonstrable in under a minute.

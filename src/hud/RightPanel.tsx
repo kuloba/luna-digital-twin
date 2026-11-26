@@ -21,7 +21,7 @@ export function RightPanel() {
   const openAlerts = useTwin((s) => s.sim.alerts.filter((a) => a.status === "OPEN").length);
   const selectedId = useTwin((s) => s.selectedId);
   return (
-    <aside data-tour="right-panel" className="pointer-events-auto absolute top-[88px] right-4 bottom-4 z-20 flex w-[392px] flex-col overflow-hidden panel">
+    <aside data-tour="right-panel" className="pointer-events-auto absolute top-[88px] right-4 bottom-4 z-20 flex w-[360px] flex-col 2xl:w-[392px] overflow-hidden panel">
       <div className="flex items-center gap-1 border-b border-line px-2 py-2">
         <Tab active={panel === "brief"} onClick={() => setPanel("brief")} icon={<Sparkles className="size-3.5" />} label="Brief" badge={openAlerts} />
         <Tab active={panel === "inspector"} onClick={() => setPanel("inspector")} icon={<ScanSearch className="size-3.5" />} label={selectedId ? <span className="font-mono text-[11.5px]">{selectedId}</span> : "Inspector"} />

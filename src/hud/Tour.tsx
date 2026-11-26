@@ -163,38 +163,40 @@ export function Tour() {
   return (
     <AnimatePresence>
       {tour.active && step ? (
-        <motion.div key="tour" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.2 }} className="pointer-events-auto absolute bottom-4 left-[max(496px,calc(496px+(100%-1348px)/2))] z-40 w-[432px]">
-          <div className="overflow-hidden rounded-[18px] bg-[#0f1b2a] text-white shadow-[0_24px_48px_-12px_rgb(15_27_42/0.55)]">
-            <div className="flex items-center gap-2 px-4 pt-3.5">
-              <LunaMark className="h-3.5 w-4" />
-              <span className="font-mono text-[10.5px] tracking-[0.08em] text-white/55 uppercase">
-                Guided demo · {tour.step + 1} / {STEPS.length}
-              </span>
-              <button type="button" onClick={() => setTour({ active: false })} aria-label="Exit demo" className="ml-auto flex size-6 items-center justify-center rounded-[7px] text-white/50 hover:bg-white/10 hover:text-white">
-                <X className="size-3.5" />
-              </button>
-            </div>
-            <AnimatePresence mode="wait">
-              <motion.div key={tour.step} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.16 }} className="px-4 pt-2 pb-3">
-                <h3 className="font-serif text-[23px] leading-[1.1] tracking-[-0.005em]">{step.title}</h3>
-                <p className="mt-2 text-[12.5px] leading-[1.6] text-white/75 [&_button]:bg-white/10 [&_button]:text-white [&_button]:ring-white/15 [&_strong]:text-white">
-                  <RichText text={step.body} chipSize="sm" />
-                </p>
-              </motion.div>
-            </AnimatePresence>
-            <div className="flex items-center gap-3 border-t border-white/10 px-4 py-2.5">
-              <div className="flex gap-1">
-                {STEPS.map((_, i) => (
-                  <button key={i} type="button" aria-label={`Step ${i + 1}`} onClick={() => setTour({ step: i })} className={cn("h-1.5 rounded-full transition-all", i === tour.step ? "w-4 bg-luna" : i < tour.step ? "w-1.5 bg-white/50" : "w-1.5 bg-white/20")} />
-                ))}
+        <motion.div key="tour" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.2 }} className="pointer-events-none absolute right-[388px] bottom-4 left-[448px] z-40 flex justify-center 2xl:right-[420px] 2xl:left-[496px]">
+          <div className="pointer-events-auto w-full max-w-[432px]">
+            <div className="overflow-hidden rounded-[18px] bg-[#0f1b2a] text-white shadow-[0_24px_48px_-12px_rgb(15_27_42/0.55)]">
+              <div className="flex items-center gap-2 px-4 pt-3.5">
+                <LunaMark className="h-3.5 w-4" />
+                <span className="font-mono text-[10.5px] tracking-[0.08em] text-white/55 uppercase">
+                  Guided demo · {tour.step + 1} / {STEPS.length}
+                </span>
+                <button type="button" onClick={() => setTour({ active: false })} aria-label="Exit demo" className="ml-auto flex size-6 items-center justify-center rounded-[7px] text-white/50 hover:bg-white/10 hover:text-white">
+                  <X className="size-3.5" />
+                </button>
               </div>
-              <div className="ml-auto flex gap-1.5">
-                <button type="button" disabled={tour.step === 0} onClick={() => setTour({ step: tour.step - 1 })} className="flex h-8 items-center gap-1 rounded-[9px] px-2.5 text-[12px] font-medium text-white/70 hover:bg-white/10 disabled:opacity-30">
-                  <ArrowLeft className="size-3.5" /> Back
-                </button>
-                <button type="button" onClick={() => (last ? setTour({ active: false }) : setTour({ step: tour.step + 1 }))} className="flex h-8 items-center gap-1 rounded-[9px] bg-luna px-3 text-[12px] font-semibold text-[#3d2600] hover:bg-[#ffc571]">
-                  {last ? "Explore" : "Next"} <ArrowRight className="size-3.5" />
-                </button>
+              <AnimatePresence mode="wait">
+                <motion.div key={tour.step} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.16 }} className="px-4 pt-2 pb-3">
+                  <h3 className="font-serif text-[23px] leading-[1.1] tracking-[-0.005em]">{step.title}</h3>
+                  <p className="mt-2 text-[12.5px] leading-[1.6] text-white/75 [&_button]:bg-white/10 [&_button]:text-white [&_button]:ring-white/15 [&_strong]:text-white">
+                    <RichText text={step.body} chipSize="sm" />
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+              <div className="flex items-center gap-3 border-t border-white/10 px-4 py-2.5">
+                <div className="flex gap-1">
+                  {STEPS.map((_, i) => (
+                    <button key={i} type="button" aria-label={`Step ${i + 1}`} onClick={() => setTour({ step: i })} className={cn("h-1.5 rounded-full transition-all", i === tour.step ? "w-4 bg-luna" : i < tour.step ? "w-1.5 bg-white/50" : "w-1.5 bg-white/20")} />
+                  ))}
+                </div>
+                <div className="ml-auto flex gap-1.5">
+                  <button type="button" disabled={tour.step === 0} onClick={() => setTour({ step: tour.step - 1 })} className="flex h-8 items-center gap-1 rounded-[9px] px-2.5 text-[12px] font-medium text-white/70 hover:bg-white/10 disabled:opacity-30">
+                    <ArrowLeft className="size-3.5" /> Back
+                  </button>
+                  <button type="button" onClick={() => (last ? setTour({ active: false }) : setTour({ step: tour.step + 1 }))} className="flex h-8 items-center gap-1 rounded-[9px] bg-luna px-3 text-[12px] font-semibold text-[#3d2600] hover:bg-[#ffc571]">
+                    {last ? "Explore" : "Next"} <ArrowRight className="size-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -322,7 +322,7 @@ function TraceLabel({ visit, n, progress }: { visit: StageVisit; n: number; prog
   const st = STAGES.find((x) => x.key === visit.stage)!;
   const when = visit.status === "DONE" ? formatDayTime(visit.exitedAt) : visit.status === "ACTIVE" ? `now · ${formatNumber(progress * 100)} %` : formatDayTime(visit.enteredAt);
   return (
-    <Html center position={[0, 2.4, 0]} zIndexRange={[28, 10]} style={{ pointerEvents: "none" }}>
+    <Html center position={[0, 3.6, 0]} zIndexRange={[28, 10]} style={{ pointerEvents: "none" }}>
       <div className={`trace-pin trace-pin--${visit.status.toLowerCase()}`}>
         <span className="trace-pin__n">{visit.status === "DONE" ? "✓" : n}</span>
         <span className="trace-pin__stage">{st.short}</span>

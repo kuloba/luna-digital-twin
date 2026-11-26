@@ -2,7 +2,7 @@ import { CameraControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useRef } from "react";
 import { MathUtils, Vector3 } from "three";
-import { HUD } from "@/lib/hud";
+import { hudInsets } from "@/lib/hud";
 import { useTwin } from "@/sim/store";
 import { ColdChain, EdgeNode, GrowTowers, HarvestToPack, Propagation, RoomPlant, TankFarm } from "./Equipment";
 import { Facility } from "./Facility";
@@ -108,8 +108,9 @@ function Rig() {
     // Projected footprint of the region in the isometric view.
     const projW = Math.abs(w * Math.cos(AZIMUTH)) + Math.abs(d * Math.sin(AZIMUTH));
     const projH = (Math.abs(w * Math.sin(AZIMUTH)) + Math.abs(d * Math.cos(AZIMUTH))) * Math.cos(POLAR) + h * Math.sin(POLAR);
-    const availW = Math.max(320, size.width - HUD.right - HUD.left - 32);
-    const availH = Math.max(240, size.height - HUD.top - HUD.bottom - 16);
+    const hud = hudInsets(size.width);
+    const availW = Math.max(320, size.width - hud.right - hud.left - 32);
+    const availH = Math.max(240, size.height - hud.top - hud.bottom - 16);
     // Leave a little air around zones and assets; the whole site fills the frame.
     const pad = w > 90 ? 1 : 0.86;
     const zoom = Math.min(availW / projW, availH / projH) * pad;
@@ -118,8 +119,8 @@ function Rig() {
     void c.setLookAt(tx + DIR.x * DIST, ty + DIR.y * DIST, tz + DIR.z * DIST, tx, ty, tz, animate);
     void c.zoomTo(zoom, animate);
     // Shift the framed region into the free area between the HUD panels.
-    const offX = (HUD.right - HUD.left) / 2 / zoom;
-    const offY = (HUD.bottom - HUD.top) / 2 / zoom;
+    const offX = (hud.right - hud.left) / 2 / zoom;
+    const offY = (hud.bottom - hud.top) / 2 / zoom;
     void c.setFocalOffset(offX, -offY, 0, animate);
   }, [request, size.width, size.height]);
 
