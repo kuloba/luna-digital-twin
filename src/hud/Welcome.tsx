@@ -49,6 +49,16 @@ export function Welcome() {
     setOpen(false);
   };
 
+  // Clicking into the twin is an answer too: step aside once they explore.
+  const selectedId = useTwin((s) => s.selectedId);
+  const focus = useTwin((s) => s.focus);
+  useEffect(() => {
+    if (selectedId || focus !== "SITE") {
+      remember();
+      setOpen(false);
+    }
+  }, [selectedId, focus]);
+
   return (
     <AnimatePresence>
       {open && !tourActive ? (
