@@ -9,6 +9,7 @@ import { Facility } from "./Facility";
 import { Glasshouse } from "./Glasshouse";
 import { AlertBeacons, FlowPaths, Heatmap, SelectionMarker, TraceRoute } from "./Overlays";
 import { Robots } from "./Robots";
+import { Static } from "./Static";
 import { SpatialTags } from "./Tags";
 
 export const AZIMUTH = MathUtils.degToRad(30);
@@ -31,16 +32,21 @@ export function Scene() {
     >
       <Lights />
       <Rig />
+      <Probe />
       <Suspense fallback={null}>
-        <Facility />
+        <Static>
+          <Facility />
+        </Static>
         <GrowTowers />
-        <RoomPlant />
-        <Propagation />
-        <Glasshouse />
-        <HarvestToPack />
-        <ColdChain />
-        <TankFarm />
-        <EdgeNode />
+        <Static>
+          <RoomPlant />
+          <Propagation />
+          <Glasshouse />
+          <HarvestToPack />
+          <ColdChain />
+          <TankFarm />
+          <EdgeNode />
+        </Static>
         <Robots />
         <Heatmap />
         <FlowPaths />
@@ -125,4 +131,14 @@ function Rig() {
   }, [request, size.width, size.height]);
 
   return <CameraControls ref={ref} makeDefault />;
+}
+
+/** Exposes the renderer for scripted performance checks (draw calls, triangles). */
+function Probe() {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  useEffect(() => {
+    Object.assign(window as object, { __twinGl: gl, __twinScene: scene });
+  }, [gl, scene]);
+  return null;
 }

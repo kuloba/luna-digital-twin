@@ -1,4 +1,4 @@
-import { Edges } from "@react-three/drei";
+import { BoxGeometry, EdgesGeometry } from "three";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { ReactNode } from "react";
 import { C } from "@/lib/theme";
@@ -35,6 +35,18 @@ export function Pickable({ id, children, position, rotationY = 0 }: { id: string
   );
 }
 
+const edgeCache = new Map<string, EdgesGeometry>();
+/** Shared outline geometry per box size (plain 1px lines merge into one draw call under <Static>). */
+function boxEdges(w: number, h: number, d: number) {
+  const key = `${w}|${h}|${d}`;
+  let g = edgeCache.get(key);
+  if (!g) {
+    g = new EdgesGeometry(new BoxGeometry(w, h, d));
+    edgeCache.set(key, g);
+  }
+  return g;
+}
+
 /** A box with crisp blueprint edges. Origin at the bottom centre. */
 export function Block({
   size,
@@ -49,7 +61,6 @@ export function Block({
   emissiveIntensity = 0,
   roughness = 0.85,
   metalness = 0,
-  threshold = 15,
 }: {
   size: [number, number, number];
   position?: [number, number, number];
@@ -63,7 +74,6 @@ export function Block({
   emissiveIntensity?: number;
   roughness?: number;
   metalness?: number;
-  threshold?: number;
 }) {
   const [w, h, d] = size;
   const transparent = opacity < 1;
@@ -80,7 +90,11 @@ export function Block({
         emissive={emissive ?? "#000000"}
         emissiveIntensity={emissiveIntensity}
       />
-      {edges ? <Edges color={edge} threshold={threshold} /> : null}
+      {edges ? (
+        <lineSegments geometry={boxEdges(w, h, d)}>
+          <lineBasicMaterial color={edge} />
+        </lineSegments>
+      ) : null}
     </mesh>
   );
 }
@@ -90,7 +104,7 @@ export function StatusLight({ id, position, radius = 0.16 }: { id: string; posit
   const status = useTwin((s) => s.sim.assets[id]?.status ?? "IDLE");
   const color = status === "ALERT" ? C.red : status === "WATCH" ? C.amber : status === "CHARGING" ? C.blue : status === "IDLE" ? "#a3afbc" : C.green;
   return (
-    <mesh position={position}>
+    <mesh position={position} userData={{ dynamic: true }}>
       <cylinderGeometry args={[radius, radius, 0.12, 16]} />
       <meshStandardMaterial color={color} emissive={color} emissiveIntensity={status === "IDLE" ? 0.1 : 0.9} toneMapped={false} />
     </mesh>

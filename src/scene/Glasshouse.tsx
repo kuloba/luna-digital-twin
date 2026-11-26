@@ -304,7 +304,7 @@ function ScanGantry({ id, x0, width }: { id: string; x0: number; width: number }
   });
   return (
     <Pickable id={`CAM-${id}`}>
-      <group ref={gantry} position={[x0, 0, 0]}>
+      <group ref={gantry} userData={{ dynamic: true }} position={[x0, 0, 0]}>
         {/* rails at either end */}
         <mesh position={[0, 4.05, 18.6]}>
           <boxGeometry args={[0.22, 0.18, 25]} />

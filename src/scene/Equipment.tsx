@@ -13,129 +13,210 @@ const tmpColor = new Color();
 /* Vertical farm                                                      */
 /* ------------------------------------------------------------------ */
 
-export function GrowTowers() {
-  return (
-    <group>
-      {TOWER_ROWS.map(({ row, x }) =>
-        Array.from({ length: 8 }, (_, i) => {
-          const id = `${row}-${String(i + 1).padStart(2, "0")}`;
-          return <GrowTower key={id} id={id} position={[x, 0, towerZ(i)]} />;
-        }),
-      )}
-    </group>
-  );
-}
-
+/**
+ * All 32 towers share a handful of instanced meshes (frames, shelves, LED
+ * bars, plants, fruit, risers, status lights): ~10 draw calls instead of
+ * ~640. Each tower keeps an invisible hit box so it stays clickable.
+ */
+const TOWERS = TOWER_ROWS.flatMap(({ row, x }) => Array.from({ length: 8 }, (_, i) => ({ id: `${row}-${String(i + 1).padStart(2, "0")}`, x, z: towerZ(i) })));
 const PLANTS_X = 2;
 const PLANTS_Z = 6;
+const PER_TOWER = TOWER_TIERS * PLANTS_X * PLANTS_Z;
+const FRUIT_PER_TOWER = TOWER_TIERS * 6;
+const LED_ON = new Color(C.led);
+const LED_OFF = new Color("#d9ccd5");
+const PIPE_IDLE = new Color(C.water).lerp(new Color("#ffffff"), 0.62);
+const PIPE_ON = new Color(C.water);
+const PIPE_HI = new Color("#bfe3ff");
 
-function GrowTower({ id, position }: { id: string; position: [number, number, number] }) {
+interface TowerLook {
+  crop?: string;
+  growth: number;
+  irrigating: boolean;
+  status: string;
+  lit: boolean;
+}
+
+export function GrowTowers() {
   const [w, , d] = TOWER_SIZE;
-  const batchId = useTwin((s) => s.sim.assets[id]?.batchId);
-  const crop = useTwin((s) => (batchId ? s.sim.batches[batchId]?.cropType : undefined));
-  const growth = useTwin((s) => {
-    const b = batchId ? s.sim.batches[batchId] : undefined;
-    return b ? Math.round(Math.min(1, Math.max(0.15, b.cycleDay / b.cycleDays)) * 20) / 20 : 0;
-  });
-  const irrigating = useTwin((s) => s.sim.assets[id]?.activity === "Irrigating" || s.sim.assets[id]?.activity === "Flushing");
+  // One string per tick: the component re-renders only when a tower's look changes.
+  const key = useTwin((s) =>
+    TOWERS.map(({ id }) => {
+      const a = s.sim.assets[id];
+      const b = a?.batchId ? s.sim.batches[a.batchId] : undefined;
+      const g = b ? Math.round(Math.min(1, Math.max(0.15, b.cycleDay / b.cycleDays)) * 20) / 20 : 0;
+      const irr = a?.activity === "Irrigating" || a?.activity === "Flushing";
+      return `${b?.cropType ?? ""}:${g}:${irr ? 1 : 0}:${a?.status ?? "IDLE"}:${a?.batchId ? 1 : 0}`;
+    }).join("|"),
+  );
+  const looks = useMemo<TowerLook[]>(
+    () =>
+      key.split("|").map((p) => {
+        const [crop, g, irr, status, lit] = p.split(":");
+        return { crop: crop || undefined, growth: Number(g), irrigating: irr === "1", status, lit: lit === "1" };
+      }),
+    [key],
+  );
+  const posts = useRef<InstancedMesh>(null);
+  const shelves = useRef<InstancedMesh>(null);
+  const leds = useRef<InstancedMesh>(null);
   const plants = useRef<InstancedMesh>(null);
   const fruit = useRef<InstancedMesh>(null);
-  const pipe = useRef<Mesh>(null);
-  const count = TOWER_TIERS * PLANTS_X * PLANTS_Z;
+  const pipes = useRef<InstancedMesh>(null);
+  const lights = useRef<InstancedMesh>(null);
 
+  // Frames and shelves never change.
   useLayoutEffect(() => {
-    const m = plants.current;
-    if (!m) return;
-    const leaf = crop ? cropColor[crop].leaf : "#8fb98a";
+    const p = posts.current;
+    const sh = shelves.current;
+    const pi = pipes.current;
+    if (!p || !sh || !pi) return;
     let n = 0;
-    for (let t = 0; t < TOWER_TIERS; t++) {
-      for (let ix = 0; ix < PLANTS_X; ix++) {
-        for (let iz = 0; iz < PLANTS_Z; iz++) {
-          const s = crop ? (0.22 + growth * 0.2) * (0.9 + ((n * 7) % 5) * 0.04) : 0.0001;
-          tmp.position.set((ix - 0.5) * 0.52, 0.18 + t * TOWER_TIER_HEIGHT + s * 0.35, (iz - 2.5) * 0.31);
-          tmp.scale.set(s, s * (crop === "BASIL" || crop === "KALE" ? 1.15 : 0.7), s);
-          tmp.rotation.set(0, n * 0.7, 0);
-          tmp.updateMatrix();
-          m.setMatrixAt(n, tmp.matrix);
-          tmpColor.set(leaf).offsetHSL(0, 0, ((n * 13) % 7) * 0.012 - 0.03);
-          m.setColorAt(n, tmpColor);
-          n++;
-        }
-      }
-    }
-    m.instanceMatrix.needsUpdate = true;
-    if (m.instanceColor) m.instanceColor.needsUpdate = true;
-    const f = fruit.current;
-    if (f) {
-      const accent = crop ? cropColor[crop].accent : undefined;
-      let k = 0;
-      for (let t = 0; t < TOWER_TIERS; t++) {
-        for (let i = 0; i < 6; i++) {
-          const show = accent && crop === "STRAWBERRY";
-          tmp.position.set((i % 2 ? 0.34 : -0.34), 0.05 + t * TOWER_TIER_HEIGHT, -0.8 + i * 0.32);
-          tmp.scale.setScalar(show ? 0.075 : 0.0001);
-          tmp.updateMatrix();
-          f.setMatrixAt(k++, tmp.matrix);
-        }
-      }
-      f.instanceMatrix.needsUpdate = true;
-    }
-  }, [crop, growth]);
-
-  useFrame(({ clock }) => {
-    if (pipe.current) {
-      const mat = pipe.current.material as unknown as { emissiveIntensity: number; opacity: number };
-      mat.emissiveIntensity = irrigating ? 0.6 + Math.sin(clock.elapsedTime * 6) * 0.35 : 0;
-      mat.opacity = irrigating ? 0.95 : 0.35;
-    }
-  });
-
-  return (
-    <Pickable id={id} position={position}>
-      {/* frame posts */}
-      {[
+    let k = 0;
+    TOWERS.forEach((t, ti) => {
+      for (const [px, pz] of [
         [-w / 2, -d / 2],
         [w / 2, -d / 2],
         [-w / 2, d / 2],
         [w / 2, d / 2],
-      ].map(([px, pz], i) => (
-        <mesh key={i} position={[px, TOWER_SIZE[1] / 2, pz]} castShadow>
-          <boxGeometry args={[0.07, TOWER_SIZE[1], 0.07]} />
-          <meshStandardMaterial color={C.steel} roughness={0.6} />
-        </mesh>
-      ))}
-      {Array.from({ length: TOWER_TIERS }, (_, t) => (
-        <group key={t} position={[0, t * TOWER_TIER_HEIGHT, 0]}>
-          <mesh position={[0, 0.1, 0]} castShadow receiveShadow>
-            <boxGeometry args={[w - 0.08, 0.06, d - 0.08]} />
-            <meshStandardMaterial color="#e9edf1" roughness={0.7} />
-          </mesh>
-          <mesh position={[0, TOWER_TIER_HEIGHT - 0.06, 0]}>
-            <boxGeometry args={[w - 0.25, 0.035, d - 0.2]} />
-            <meshStandardMaterial color={C.led} emissive={C.led} emissiveIntensity={batchId ? 1.1 : 0.12} toneMapped={false} />
-          </mesh>
-        </group>
-      ))}
-      <instancedMesh ref={plants} args={[undefined, undefined, count]} castShadow>
+      ]) {
+        tmp.position.set(t.x + px, TOWER_SIZE[1] / 2, t.z + pz);
+        tmp.rotation.set(0, 0, 0);
+        tmp.scale.set(1, 1, 1);
+        tmp.updateMatrix();
+        p.setMatrixAt(n++, tmp.matrix);
+      }
+      for (let tier = 0; tier < TOWER_TIERS; tier++) {
+        tmp.position.set(t.x, tier * TOWER_TIER_HEIGHT + 0.1, t.z);
+        tmp.updateMatrix();
+        sh.setMatrixAt(k++, tmp.matrix);
+      }
+      tmp.position.set(t.x + w / 2 + 0.12, TOWER_SIZE[1] / 2, t.z - d / 2 + 0.15);
+      tmp.updateMatrix();
+      pi.setMatrixAt(ti, tmp.matrix);
+    });
+    p.instanceMatrix.needsUpdate = true;
+    sh.instanceMatrix.needsUpdate = true;
+    pi.instanceMatrix.needsUpdate = true;
+  }, [w, d]);
+
+  useLayoutEffect(() => {
+    const m = plants.current;
+    const f = fruit.current;
+    const l = leds.current;
+    const st = lights.current;
+    const pi = pipes.current;
+    if (!m || !f || !l || !st || !pi) return;
+    let n = 0;
+    let k = 0;
+    let e = 0;
+    looks.forEach((look, ti) => {
+      const t = TOWERS[ti];
+      const crop = look.crop as keyof typeof cropColor | undefined;
+      const leaf = crop ? cropColor[crop].leaf : "#8fb98a";
+      let local = 0;
+      for (let tier = 0; tier < TOWER_TIERS; tier++) {
+        for (let ix = 0; ix < PLANTS_X; ix++) {
+          for (let iz = 0; iz < PLANTS_Z; iz++) {
+            const s = crop ? (0.22 + look.growth * 0.2) * (0.9 + ((local * 7) % 5) * 0.04) : 0.0001;
+            tmp.position.set(t.x + (ix - 0.5) * 0.52, 0.18 + tier * TOWER_TIER_HEIGHT + s * 0.35, t.z + (iz - 2.5) * 0.31);
+            tmp.scale.set(s, s * (crop === "BASIL" || crop === "KALE" ? 1.15 : 0.7), s);
+            tmp.rotation.set(0, local * 0.7, 0);
+            tmp.updateMatrix();
+            m.setMatrixAt(n, tmp.matrix);
+            tmpColor.set(leaf).offsetHSL(0, 0, ((local * 13) % 7) * 0.012 - 0.03);
+            m.setColorAt(n, tmpColor);
+            n++;
+            local++;
+          }
+        }
+        for (let i = 0; i < 6; i++) {
+          const show = crop === "STRAWBERRY";
+          tmp.position.set(t.x + (i % 2 ? 0.34 : -0.34), 0.05 + tier * TOWER_TIER_HEIGHT, t.z - 0.8 + i * 0.32);
+          tmp.rotation.set(0, 0, 0);
+          tmp.scale.setScalar(show ? 0.075 : 0.0001);
+          tmp.updateMatrix();
+          f.setMatrixAt(k++, tmp.matrix);
+        }
+        tmp.position.set(t.x, tier * TOWER_TIER_HEIGHT + TOWER_TIER_HEIGHT - 0.06, t.z);
+        tmp.scale.set(1, 1, 1);
+        tmp.updateMatrix();
+        l.setMatrixAt(e, tmp.matrix);
+        l.setColorAt(e, look.lit ? LED_ON : LED_OFF);
+        e++;
+      }
+      tmp.position.set(t.x, TOWER_SIZE[1] + 0.08, t.z);
+      tmp.updateMatrix();
+      st.setMatrixAt(ti, tmp.matrix);
+      tmpColor.set(towerLight(look.status));
+      st.setColorAt(ti, tmpColor);
+      pi.setColorAt(ti, look.irrigating ? PIPE_ON : PIPE_IDLE);
+    });
+    for (const mesh of [m, f, l, st, pi]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
+  }, [looks]);
+
+  // Risers pulse while a tower irrigates.
+  useFrame(({ clock }) => {
+    const pi = pipes.current;
+    if (!pi) return;
+    let any = false;
+    const pulse = 0.5 + Math.sin(clock.elapsedTime * 6) * 0.5;
+    looks.forEach((look, ti) => {
+      if (!look.irrigating) return;
+      any = true;
+      tmpColor.copy(PIPE_ON).lerp(PIPE_HI, pulse);
+      pi.setColorAt(ti, tmpColor);
+    });
+    if (any && pi.instanceColor) pi.instanceColor.needsUpdate = true;
+  });
+
+  return (
+    <group>
+      <instancedMesh ref={posts} args={[undefined, undefined, TOWERS.length * 4]} castShadow>
+        <boxGeometry args={[0.07, TOWER_SIZE[1], 0.07]} />
+        <meshStandardMaterial color={C.steel} roughness={0.6} />
+      </instancedMesh>
+      <instancedMesh ref={shelves} args={[undefined, undefined, TOWERS.length * TOWER_TIERS]} castShadow receiveShadow>
+        <boxGeometry args={[w - 0.08, 0.06, d - 0.08]} />
+        <meshStandardMaterial color="#e9edf1" roughness={0.7} />
+      </instancedMesh>
+      <instancedMesh ref={leds} args={[undefined, undefined, TOWERS.length * TOWER_TIERS]}>
+        <boxGeometry args={[w - 0.25, 0.035, d - 0.2]} />
+        <meshBasicMaterial toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={plants} args={[undefined, undefined, TOWERS.length * PER_TOWER]} castShadow>
         <icosahedronGeometry args={[1, 1]} />
         <meshStandardMaterial roughness={0.9} flatShading />
       </instancedMesh>
-      <instancedMesh ref={fruit} args={[undefined, undefined, TOWER_TIERS * 6]}>
+      <instancedMesh ref={fruit} args={[undefined, undefined, TOWERS.length * FRUIT_PER_TOWER]}>
         <sphereGeometry args={[1, 8, 6]} />
         <meshStandardMaterial color={C.red} roughness={0.5} />
       </instancedMesh>
-      {/* irrigation riser */}
-      <mesh ref={pipe} position={[w / 2 + 0.12, TOWER_SIZE[1] / 2, -d / 2 + 0.15]}>
+      <instancedMesh ref={pipes} args={[undefined, undefined, TOWERS.length]}>
         <cylinderGeometry args={[0.06, 0.06, TOWER_SIZE[1], 8]} />
-        <meshStandardMaterial color={C.water} emissive={C.water} transparent opacity={0.4} toneMapped={false} />
-      </mesh>
-      <StatusLight id={id} position={[0, TOWER_SIZE[1] + 0.08, 0]} radius={0.14} />
-      {/* invisible hit box so the whole tower is easy to click */}
-      <mesh position={[0, TOWER_SIZE[1] / 2, 0]} visible={false}>
-        <boxGeometry args={[w + 0.2, TOWER_SIZE[1], d + 0.2]} />
-      </mesh>
-    </Pickable>
+        <meshBasicMaterial toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={lights} args={[undefined, undefined, TOWERS.length]}>
+        <cylinderGeometry args={[0.14, 0.14, 0.12, 16]} />
+        <meshBasicMaterial toneMapped={false} />
+      </instancedMesh>
+      {TOWERS.map((t) => (
+        <Pickable key={t.id} id={t.id} position={[t.x, 0, t.z]}>
+          {/* invisible hit box so the whole tower is easy to click */}
+          <mesh position={[0, TOWER_SIZE[1] / 2, 0]} visible={false}>
+            <boxGeometry args={[w + 0.2, TOWER_SIZE[1], d + 0.2]} />
+          </mesh>
+        </Pickable>
+      ))}
+    </group>
   );
+}
+
+function towerLight(status: string) {
+  return status === "ALERT" ? C.red : status === "WATCH" ? C.amber : status === "CHARGING" ? C.blue : status === "IDLE" ? "#a3afbc" : C.green;
 }
 
 export function RoomPlant() {
@@ -182,7 +263,7 @@ function Fan({ position }: { position: [number, number, number] }) {
         <circleGeometry args={[0.62, 24]} />
         <meshStandardMaterial color="#2d3a4a" />
       </mesh>
-      <group ref={ref} position={[0, 0.03, 0]}>
+      <group ref={ref} userData={{ dynamic: true }} position={[0, 0.03, 0]}>
         {[0, 1, 2].map((k) => (
           <mesh key={k} rotation={[0, (k * Math.PI * 2) / 3, 0]} position={[0, 0, 0]}>
             <boxGeometry args={[1.1, 0.02, 0.16]} />
@@ -281,7 +362,7 @@ function RobotArm({ active }: { active: boolean }) {
         <cylinderGeometry args={[0.55, 0.65, 0.5, 24]} />
         <meshStandardMaterial color={C.white} />
       </mesh>
-      <group ref={base} position={[0, 0.5, 0]}>
+      <group ref={base} userData={{ dynamic: true }} position={[0, 0.5, 0]}>
         <mesh position={[0, 0.25, 0]} castShadow>
           <cylinderGeometry args={[0.38, 0.38, 0.5, 20]} />
           <meshStandardMaterial color={C.luna} roughness={0.5} />
@@ -384,7 +465,7 @@ function ScanTunnel() {
       <Block size={[3.4, 0.3, 1.9]} position={[0, 1.95, 0]} color="#f3f5f7" edge={C.wallEdge} />
       <Block size={[3.4, 2.0, 0.22]} position={[0, 0, -0.95]} color="#f3f5f7" edge={C.wallEdge} />
       <Block size={[3.4, 2.0, 0.22]} position={[0, 0, 0.95]} color="#f3f5f7" edge={C.wallEdge} opacity={0.5} />
-      <mesh ref={beam} position={[0, 1.35, 0]}>
+      <mesh ref={beam} userData={{ dynamic: true }} position={[0, 1.35, 0]}>
         <boxGeometry args={[0.05, 1.1, 1.6]} />
         <meshBasicMaterial color="#5fb4ff" transparent opacity={0.55} toneMapped={false} />
       </mesh>
@@ -407,7 +488,7 @@ function Sealer() {
       {[-1.45, 1.45].map((x) => (
         <Block key={x} size={[0.25, 2.2, 2.2]} position={[x, 0, 0]} color={C.white} edge={C.wallEdge} />
       ))}
-      <mesh ref={head} position={[0, 1.7, 0]} castShadow>
+      <mesh ref={head} userData={{ dynamic: true }} position={[0, 1.7, 0]} castShadow>
         <boxGeometry args={[1.6, 0.3, 1.2]} />
         <meshStandardMaterial color={C.steel} />
       </mesh>
@@ -527,7 +608,7 @@ function ColdRoom({ id, bounds }: { id: string; bounds: [number, number, number,
         </group>
       ))}
       {/* door on the corridor side */}
-      <group ref={door} position={[(x0 + x1) / 2 - 1.5, 0, z0]}>
+      <group ref={door} userData={{ dynamic: true }} position={[(x0 + x1) / 2 - 1.5, 0, z0]}>
         <Block size={[3, 3.2, 0.14]} position={[1.5, 0, 0]} color={doorOpen ? "#f7d58a" : "#dbe7ef"} edge="#7fa6bf" />
       </group>
       <StatusLight id={id} position={[x1 - 0.8, 4.7, z0 + 0.8]} radius={0.22} />
@@ -544,7 +625,7 @@ function Truck({ id, x }: { id: string; x: number }) {
     ref.current.position.z += (target - ref.current.position.z) * Math.min(1, dt * 0.25);
   });
   return (
-    <group ref={ref} position={[x, 0, 40]}>
+    <group ref={ref} userData={{ dynamic: true }} position={[x, 0, 40]}>
       <Pickable id={id}>
         {/* reefer box */}
         <Block size={[2.5, 2.9, 8.2]} position={[0, 0.9, -0.2]} color="#fbfcfd" edge={C.wallEdge} />
@@ -623,7 +704,7 @@ function Tank({ id, x, z, r, h, role }: (typeof TANKS)[number]) {
         <lineBasicMaterial color={C.wallEdge} />
       </lineSegments>
       {/* liquid */}
-      <mesh ref={liquid} position={[0, 0.5, 0]}>
+      <mesh ref={liquid} userData={{ dynamic: true }} position={[0, 0.5, 0]}>
         <cylinderGeometry args={[r * 0.95, r * 0.95, 1, 40]} />
         <meshStandardMaterial color={LIQUID[role]} transparent opacity={role === "co2" ? 0.55 : 0.82} roughness={0.2} emissive={LIQUID[role]} emissiveIntensity={0.12} />
       </mesh>
