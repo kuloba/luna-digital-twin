@@ -1,6 +1,6 @@
 import { CameraControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { MathUtils, Vector3 } from "three";
 import { hudInsets } from "@/lib/hud";
 import { useTwin } from "@/sim/store";
@@ -17,13 +17,31 @@ export const POLAR = MathUtils.degToRad(52);
 const DIR = new Vector3(Math.sin(POLAR) * Math.sin(AZIMUTH), Math.cos(POLAR), Math.sin(POLAR) * Math.cos(AZIMUTH));
 const DIST = 220;
 
+/**
+ * Device-pixel budget: full retina on laptop screens, scaled back on big
+ * external displays so a 5K monitor doesn't render 4× the pixels of a laptop.
+ */
+const PIXEL_BUDGET = 6.5e6;
+const budgetDpr = () => Math.max(1, Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(PIXEL_BUDGET / (window.innerWidth * window.innerHeight))));
+
+function useDprBudget() {
+  const [dpr, setDpr] = useState(budgetDpr);
+  useEffect(() => {
+    const on = () => setDpr(budgetDpr());
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  return dpr;
+}
+
 export function Scene() {
   const select = useTwin((s) => s.select);
+  const dpr = useDprBudget();
   return (
     <Canvas
       orthographic
       shadows="soft"
-      dpr={[1, 2]}
+      dpr={dpr}
       camera={{ position: [DIR.x * DIST, DIR.y * DIST, DIR.z * DIST], zoom: 8, near: 1, far: 2000 }}
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
       onPointerMissed={(e) => {
