@@ -101,7 +101,8 @@ export function assetSummary(a: Asset, s: SimState): string {
     case "TRUCK":
       return `${a.activity} for ${String(a.detail?.destination ?? "")}. Reefer holding ${formatNumber(a.metrics.temp!.value, 1)} °C.`;
     default:
-      return outOfBand.length ? `${outOfBand.map((m) => m!.label).join(", ")} outside band.` : `${a.activity}. All readings in band.`;
+      if (outOfBand.length) return `${outOfBand.map((m) => m!.label).join(", ")} outside band.`;
+      return Object.keys(a.metrics).length ? `${a.activity}. All readings in band.` : `${a.activity}.`;
   }
 }
 

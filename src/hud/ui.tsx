@@ -108,6 +108,13 @@ export function metricTone(m: Metric): Tone {
   return deviation(m) > 0.35 ? "crit" : "warn";
 }
 
+/** Room left for a tile's sparkline once its value and unit are set (half-width tiles are ~140 px inside). */
+function sparkWidth(m: Metric) {
+  const text = formatNumber(m.value, m.precision).length * 11.5 + (m.unit ? 4 + m.unit.length * 6 : 0);
+  const room = 140 - 8 - text;
+  return room >= 64 ? 64 : room >= 32 ? Math.floor(room) : 0;
+}
+
 export function MetricTile({ metric, label, compact, className }: { metric: Metric; label?: string; compact?: boolean; className?: string }) {
   const tone = metricTone(metric);
   const color = tone === "ok" ? "#4f6d8f" : tone === "warn" ? "#d98a0b" : "#dc4a3d";
@@ -122,7 +129,7 @@ export function MetricTile({ metric, label, compact, className }: { metric: Metr
           <Num value={metric.value} digits={metric.precision} className={cn("font-mono text-[19px] leading-none font-medium tracking-[-0.02em]", tone === "crit" ? "text-crit" : tone === "warn" ? "text-[#b26b00]" : "text-ink")} />
           {metric.unit ? <span className="text-[10.5px] text-muted">{metric.unit}</span> : null}
         </div>
-        {!compact ? <Sparkline data={metric.history.slice(-40)} color={color} width={64} height={22} band={[metric.low, metric.high]} fill={false} /> : null}
+        {!compact && sparkWidth(metric) ? <Sparkline data={metric.history.slice(-40)} color={color} width={sparkWidth(metric)} height={22} band={[metric.low, metric.high]} fill={false} className="shrink-0" /> : null}
       </div>
       <BandMeter metric={metric} />
       {compact ? (

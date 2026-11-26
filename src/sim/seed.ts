@@ -307,7 +307,9 @@ function buildAssets(batches: Record<string, Batch>): Record<string, Asset> {
   }
   [43, 49, 55].forEach((x, i) => {
     const id = `DOCK-${i + 1}`;
-    add(assets, { id, kind: "DOCK", name: `Dock Door ${i + 1}`, zoneId: "COLD", position: [x, 0, 32], size: [3.4, 3.4, 0.4], status: i === 2 ? "IDLE" : "ACTIVE", activity: i === 2 ? "Open slot 15:30" : "Loading", metrics: {} });
+    // Each door serves the reefer parked at it (TRK-1…3, left to right).
+    add(assets, { id, kind: "DOCK", name: `Dock Door ${i + 1}`, zoneId: "COLD", position: [x, 0, 32], size: [3.4, 3.4, 0.4], status: "ACTIVE", activity: `Loading TRK-${i + 1}`, metrics: {},
+      detail: { truckAtDoor: `TRK-${i + 1}`, seal: "Inflated", leveller: "Down", airCurtain: "On", nextSlot: ["14:30", "15:00", "16:30"][i] } });
   });
   const trucks = [
     { id: "TRK-1", dest: "Puget Provisions Co-op · Seattle", depart: "in 55 min", load: 0.82, batch: "BAS-1115" },
