@@ -114,6 +114,7 @@ export const PRESETS = [
   { title: "Why is V2 warm?", prompt: "Why is Grow Room V2 running warm?" },
   { title: "Tomato yield", prompt: "What will the tomato compartments yield this week?" },
   { title: "Pick plan", prompt: "Where should the picking crews go tomorrow?" },
+  { title: "14-day forecast", prompt: "What's the harvest forecast for the next two weeks?" },
   { title: "Pest pressure", prompt: "Where are the cameras seeing pest pressure?" },
   { title: "Bandwidth", prompt: "How much data are the cameras sending off-site?" },
   { title: "Where's LET-1124?", prompt: "Where is LET-1124 and will it make the 14:00 truck?" },
@@ -160,6 +161,9 @@ export function reply(prompt: string, s: SimState, role: Role): { text: string; 
     const raw = (images * 4.2) / 1024;
     const synced = ((Object.keys(s.cv.G1.plants).length * 3 * 9.2 * 1.15) / 1024 + images * 0.00009);
     return { text: `Today the three camera rails have taken **${formatNumber(images)} images** (~${formatNumber(raw)} GB). None of them left the site. [[EDGE-01]] runs truss, ripeness and pest models locally and syncs **${formatNumber(synced, 1)} MB** of plant state — a **${formatNumber((1 - synced / 1024 / raw) * 100, 3)} %** reduction. That's why this twin stays live over a 12 Mbps LTE uplink, and why it loads instantly: you're looking at the crop's state, not its photos.` };
+  }
+  if (p.includes("forecast") || p.includes("two weeks") || p.includes("14 day") || p.includes("14-day") || p.includes("next week") || p.includes("fortnight")) {
+    return { text: forecastAnswer(s) };
   }
   if (p.includes("crew") || p.includes("picker") || p.includes("pick plan") || p.includes("pick list") || p.includes("harvest plan")) {
     return { text: pickPlan(s) };
@@ -214,7 +218,7 @@ export function reply(prompt: string, s: SimState, role: Role): { text: string; 
     const a = s.assets[id];
     if (a) return { text: `[[${id}]] · ${a.name}: ${assetSummary(a, s)}` };
   }
-  return { text: "I can answer from the live twin — try asking what needs you, tomato yield this week, pest pressure, tank levels, where a batch is, or how much data the cameras send off-site." };
+  return { text: "I can answer from the live twin — try asking what needs you, tomato yield this week, the 14-day harvest forecast, pest pressure, tank levels, where a batch is, or how much data the cameras send off-site." };
 }
 
 /** Picker-hours a crew member covers in high-wire tomatoes (kg per hour). */
@@ -254,7 +258,7 @@ function pickPlan(s: SimState) {
   const groups = [...byPest.entries()].map(([pest, ids]) => `the ${pest.toLowerCase()} ${ids.length > 1 ? "rows" : "row"} ${ids.map((id) => `[[${id}]]`).join(", ")}`);
   const hold = groups.length ? `\n\nHold ${groups.join(" and ")} until a scout clears them, so pickers don't carry it down the house.` : "";
   const ahead = tomatoAhead(s);
-  return `Tomorrow's pick, from this morning's camera passes:\n\n${list}\n\nThat's **${formatKg(kg)}** across ${top.length} rows — about **${formatNumber(hours, 1)} picker-hours** at ${PICK_RATE} kg/h, so a crew of ${crew} clears it in ~${formatNumber(hours / crew, 1)} h.${hold}\n\nLooking ahead, the same scans put **${formatKg(ahead.week1)}** of tomatoes coming ready over the next 7 days and ${formatKg(ahead.week2)} the week after, peaking ${ahead.peakDay} — plan about **${formatNumber(ahead.week1 / 7 / PICK_RATE, 1)} picker-hours a day**. The 14-day forecast is in the glasshouse table.`;
+  return `Tomorrow's pick, from this morning's camera passes:\n\n${list}\n\nThat's **${formatKg(kg)}** across ${top.length} rows — about **${formatNumber(hours, 1)} picker-hours** at ${PICK_RATE} kg/h, so a crew of ${crew} clears it in ~${formatNumber(hours / crew, 1)} h.${hold}\n\nThat clears what is already red. After it, the same scans put **${formatKg(ahead.week1)}** of tomatoes turning red over the next 7 days and ${formatKg(ahead.week2)} the week after, peaking ${ahead.peakDay} — about **${formatNumber(ahead.week1 / 7 / PICK_RATE, 1)} picker-hours a day** to keep pace. The 14-day forecast is in the glasshouse table.`;
 }
 
 const dayName = (i: number) => {
@@ -271,6 +275,19 @@ function tomatoAhead(s: SimState) {
     if (v > days[peak]) peak = i;
   });
   return { days, week1: days.slice(0, 7).reduce((a, b) => a + b, 0), week2: days.slice(7).reduce((a, b) => a + b, 0), peakDay: dayName(peak), peakKg: days[peak] };
+}
+
+/** The 14-day forecast on its own: per compartment, the peak day, and the labour it implies. */
+function forecastAnswer(s: SimState) {
+  const lines = ["G1", "G2", "G3"].map((id) => {
+    const c = s.cv[id];
+    const f = compartmentForecast(c);
+    const w1 = f.days.slice(0, 7).reduce((a, b) => a + b, 0);
+    const w2 = f.days.slice(7).reduce((a, b) => a + b, 0);
+    return `• [[${id}]] ${c.crop === "TOMATO" ? "tomatoes" : "cucumbers"} — ${formatKg(f.readyNowKg)} ready now · **${formatKg(w1)}** this week · ${formatKg(w2)} next`;
+  });
+  const t = tomatoAhead(s);
+  return `Harvest forecast for the next 14 days, built only from what the cameras measured on their last pass — each truss's ripeness projected to the day it reaches pick stage:\n\n${lines.join("\n")}\n\nTomatoes peak ${t.peakDay} at ~${formatKg(t.peakKg)}. Week two is ${formatNumber(((t.week2 - t.week1) / Math.max(1, t.week1)) * 100)} % ${t.week2 >= t.week1 ? "heavier" : "lighter"} than this week, so ${t.week2 >= t.week1 ? "book the extra picking hours and offer the surplus to buyers now" : "there is room to trim picking hours"} — about **${formatNumber(t.week2 / 7 / PICK_RATE, 1)} picker-hours a day** next week at ${PICK_RATE} kg/h. Open the glasshouse's **Harvest forecast** table for the day-by-day chart.`;
 }
 
 /** One paragraph of the 14-day forecast for the yield answer. */
