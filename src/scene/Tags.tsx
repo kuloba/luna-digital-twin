@@ -1,7 +1,7 @@
 import { Html } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
-import type { Group } from "three";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { type Group, Vector3 } from "three";
 import { cn } from "@/lib/format";
 import { statusColor } from "@/lib/theme";
 import { pointAlong } from "@/sim/layout";
@@ -75,6 +75,7 @@ export function SpatialTags() {
     void tick;
     return pickTags(twin().sim, focus, selectedId, hoveredId, trace);
   }, [focus, selectedId, hoveredId, trace, tick]);
+  useDeclutter(on);
   if (!on) return null;
   return (
     <group>
@@ -83,6 +84,110 @@ export function SpatialTags() {
       ))}
     </group>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Screen-space declutter                                             */
+/* ------------------------------------------------------------------ */
+
+interface Placed {
+  group: Group;
+  el: HTMLElement;
+  prio: number;
+  w: number;
+  h: number;
+  dy: number;
+  shown: boolean;
+}
+
+/** Every mounted tag registers here so one pass can lay them all out. */
+const registry = new Map<string, Placed>();
+const proj = new Vector3();
+const GAP = 4;
+// Chips only climb, so the leader line can always reach the anchor below.
+const STEPS = [0, -1, -2, -3];
+
+/**
+ * Tags are laid out like map labels: highest priority first (selection,
+ * hover, alerts), each nudged up or down a row if it would sit on a tag
+ * already placed, and hidden if there is no room or it would sit under a
+ * HUD panel. The previous offset is tried first so labels don't jump.
+ */
+function useDeclutter(on: boolean) {
+  const { camera, size } = useThree();
+  const frame = useRef(0);
+  const hud = useRef<DOMRect[]>([]);
+  useFrame(() => {
+    if (!on) return;
+    const n = frame.current++;
+    if (n % 15 === 0) {
+      hud.current = [...document.querySelectorAll<HTMLElement>(".panel, [data-hud]")].map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0);
+    }
+    const items = [...registry.values()];
+    if (n % 20 === 0) for (const it of items) {
+      it.w = it.el.offsetWidth;
+      it.h = it.el.offsetHeight;
+    }
+    const placed: [number, number, number, number][] = [];
+    const hits = (x0: number, y0: number, x1: number, y1: number) => {
+      for (const r of placed) if (x0 < r[2] && x1 > r[0] && y0 < r[3] && y1 > r[1]) return true;
+      for (const r of hud.current) if (x0 < r.right + 2 && x1 > r.left - 2 && y0 < r.bottom + 2 && y1 > r.top - 2) return true;
+      return false;
+    };
+    items.sort((a, b) => b.prio - a.prio);
+    for (const it of items) {
+      it.group.updateWorldMatrix(true, false);
+      proj.setFromMatrixPosition(it.group.matrixWorld).project(camera);
+      const sx = ((proj.x + 1) / 2) * size.width;
+      const sy = ((1 - proj.y) / 2) * size.height;
+      const w = it.w || 120;
+      const h = it.h || 22;
+      const behind = proj.z > 1 || sx < -w || sx > size.width + w || sy < -h || sy > size.height + h;
+      let best: number | undefined;
+      if (!behind) {
+        const order = [it.dy, ...STEPS.map((k) => k * (h + GAP)).filter((d) => d !== it.dy)];
+        for (const dy of order) {
+          // The chip sits centred on x, its bottom edge on the anchor (plus the offset).
+          const y1 = sy + dy;
+          if (!hits(sx - w / 2 - GAP / 2, y1 - h - GAP / 2, sx + w / 2 + GAP / 2, y1 + GAP / 2)) {
+            best = dy;
+            break;
+          }
+        }
+        // The selection always shows, even if it has to overlap.
+        if (best === undefined && it.prio >= 4) best = it.dy;
+      }
+      const show = best !== undefined;
+      if (show) {
+        it.dy = best!;
+        placed.push([sx - w / 2 - GAP / 2, sy + it.dy - h - GAP / 2, sx + w / 2 + GAP / 2, sy + it.dy + GAP / 2]);
+      }
+      if (show !== it.shown) {
+        it.shown = show;
+        it.el.style.opacity = show ? "1" : "0";
+        it.el.style.pointerEvents = show ? "" : "none";
+      }
+      it.el.style.setProperty("--tag-dy", `${show ? it.dy : 0}px`);
+    }
+  });
+}
+
+/**
+ * Lets other screen labels (the batch-trace stage pins) take part in the
+ * same layout. Put the group ref on an object at the anchor and the callback
+ * on the label element; the element must honour `--tag-dy`.
+ */
+export function useLabelSlot(key: string, prio: number) {
+  const group = useRef<Group>(null);
+  const setEl = useCallback(
+    (b: HTMLElement | null) => {
+      if (b && group.current) registry.set(key, { group: group.current, el: b, prio, w: b.offsetWidth, h: b.offsetHeight, dy: 0, shown: true });
+      else if (!b) registry.delete(key);
+    },
+    [key, prio],
+  );
+  useEffect(() => () => void registry.delete(key), [key]);
+  return [group, setEl] as const;
 }
 
 function anchor(a: Asset): [number, number, number] {
@@ -103,7 +208,25 @@ function Tag({ id }: { id: string }) {
   const kind = useTwin((s) => s.sim.assets[id]?.kind);
   const alert = useTwin((s) => s.sim.alerts.find((al) => al.assetId === id && al.status !== "RESOLVED"));
   const selected = useTwin((s) => s.selectedId === id);
+  const hovered = useTwin((s) => s.hoveredId === id);
   const truckOut = kind === "TRUCK" && activity.startsWith("Sealed");
+  const prio = selected ? 5 : hovered ? 4.5 : alert ? (alert.severity === "CRITICAL" ? 3.5 : 3) : kind === "ROOM" || kind === "COMPARTMENT" ? 2 : kind === "AMR" ? 0.5 : 1;
+  const prioRef = useRef(prio);
+  prioRef.current = prio;
+  // <Html> mounts its content in its own root, so register from the
+  // button's ref callback rather than an effect.
+  const setEl = useCallback(
+    (b: HTMLButtonElement | null) => {
+      if (b && group.current) registry.set(id, { group: group.current, el: b, prio: prioRef.current, w: b.offsetWidth, h: b.offsetHeight, dy: 0, shown: true });
+      else if (!b) registry.delete(id);
+    },
+    [id],
+  );
+  useEffect(() => () => void registry.delete(id), [id]);
+  useEffect(() => {
+    const r = registry.get(id);
+    if (r) r.prio = prio;
+  }, [id, prio]);
 
   useFrame(() => {
     const st = twin();
@@ -133,6 +256,7 @@ function Tag({ id }: { id: string }) {
     <group ref={group}>
       <Html center zIndexRange={[30, 10]} style={{ pointerEvents: "none" }}>
         <button
+          ref={setEl}
           type="button"
           onClick={() => twin().select(id)}
           onMouseEnter={() => twin().hover(id)}
@@ -147,14 +271,14 @@ function Tag({ id }: { id: string }) {
         >
           <span className={cn("spatial-tag__dot", (alert || status === "ACTIVE") && "spatial-tag__dot--live")} style={{ background: dot }} />
           <span className="spatial-tag__id">{id}</span>
-          <span className="spatial-tag__activity">{alert && alert.status === "OPEN" ? shortAlert(alert.title) : activity}</span>
+          <span className="spatial-tag__activity">{alert && alert.status === "OPEN" ? shortAlert(alert.title, id) : activity}</span>
         </button>
       </Html>
     </group>
   );
 }
 
-function shortAlert(title: string) {
+function shortAlert(title: string, id: string) {
   const t = title.split(" — ")[0];
-  return t.replace(/^Grow Room V2 |^Tower B-04 root-zone |^Cold Room 2 at /, "");
+  return t.replace(/^Grow Room V2 |^Tower B-04 root-zone |^Cold Room 2 at /, "").replace(new RegExp(`^${id}\\s+`), "");
 }

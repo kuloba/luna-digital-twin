@@ -46,13 +46,16 @@ export function Toasts() {
     return () => clearInterval(t);
   }, [toasts.length]);
 
+  // During the guided demo one toast at a time is plenty: the story is on the card.
+  const touring = useTwin((s) => s.tour.active);
+  const shown = touring ? toasts.slice(0, 1) : toasts;
   const dismiss = (id: string) => setToasts((ts) => ts.filter((x) => x.id !== id));
 
   return (
     <div className="pointer-events-none absolute top-[206px] right-[392px] z-30 2xl:right-[424px] flex w-[340px] flex-col gap-2">
       <AnimatePresence initial={false}>
-        {toasts.map((t) => (
-          <motion.div key={t.id} layout initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, x: 24 }} transition={{ duration: 0.22 }} className="pointer-events-auto">
+        {shown.map((t) => (
+          <motion.div key={t.id} layout initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, x: 24 }} transition={{ duration: 0.22 }} data-hud className="pointer-events-auto">
             <ToastCard t={t} onClose={() => dismiss(t.id)} />
           </motion.div>
         ))}

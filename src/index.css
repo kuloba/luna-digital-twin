@@ -116,6 +116,8 @@ body,
 
 .spatial-tag {
   position: relative;
+  transform: translateY(var(--tag-dy, 0px));
+  transition: opacity 160ms ease, transform 160ms ease, box-shadow 160ms ease;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -128,7 +130,6 @@ body,
   line-height: 16px;
   color: var(--color-ink-2);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
 }
 
@@ -138,12 +139,14 @@ body,
   left: 50%;
   top: 100%;
   width: 1px;
-  height: 10px;
+  /* A nudged chip keeps its leader line down to the anchor. */
+  height: calc(10px - var(--tag-dy, 0px));
   background: rgb(15 27 42 / 0.28);
+  transition: height 160ms ease;
 }
 
 .spatial-tag:hover {
-  transform: translateY(-1px);
+  transform: translateY(calc(var(--tag-dy, 0px) - 1px));
   box-shadow: 0 0 0 1px rgb(15 27 42 / 0.16), 0 6px 14px -2px rgb(15 27 42 / 0.22);
 }
 
@@ -230,6 +233,9 @@ body,
 
 /* Batch trace stage pins ------------------------------------------------ */
 .trace-pin {
+  translate: 0 -50%;
+  transform: translateY(var(--tag-dy, 0px));
+  transition: opacity 160ms ease, transform 160ms ease;
   display: inline-flex;
   align-items: center;
   gap: 6px;

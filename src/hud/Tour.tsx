@@ -175,7 +175,7 @@ export function Tour() {
       {tour.active && step ? (
         <motion.div key="tour" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.2 }} className="pointer-events-none absolute right-[388px] bottom-4 left-[448px] z-40 flex justify-center 2xl:right-[420px] 2xl:left-[496px]">
           <div className="pointer-events-auto w-full max-w-[432px]">
-            <div className="overflow-hidden rounded-[18px] bg-[#0f1b2a] text-white shadow-[0_24px_48px_-12px_rgb(15_27_42/0.55)]">
+            <div data-hud className="overflow-hidden rounded-[18px] bg-[#0f1b2a] text-white shadow-[0_24px_48px_-12px_rgb(15_27_42/0.55)]">
               <div className="flex items-center gap-2 px-4 pt-3.5">
                 <LunaMark className="h-3.5 w-4" />
                 <span className="font-mono text-[10.5px] tracking-[0.08em] text-white/55 uppercase">

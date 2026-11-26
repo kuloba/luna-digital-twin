@@ -41,9 +41,11 @@ export function ZoneTable() {
     if (focus === "SITE") setTab(role === "GROWER" ? "climate" : "robots");
   }, [role, focus]);
   const sim = useTwin((s) => s.sim);
+  // The guided demo's card takes this slot; the table comes back when it ends.
+  const touring = useTwin((s) => s.tour.active);
   const zoneLabel = focus === "SITE" ? "Whole campus" : ZONE_BY_ID[focus].short;
   return (
-    <div data-tour="table" className="pointer-events-auto absolute right-[388px] bottom-4 left-[448px] z-20 hidden h-[196px] min-w-0 flex-col overflow-hidden panel min-[1200px]:flex 2xl:right-[420px] 2xl:left-[496px]">
+    <div data-tour="table" className={cn("pointer-events-auto absolute right-[388px] bottom-4 left-[448px] z-20 hidden h-[196px] min-w-0 flex-col overflow-hidden panel 2xl:right-[420px] 2xl:left-[496px]", !touring && "min-[1200px]:flex")}>
       <div className="flex items-center gap-2 border-b border-line px-2 py-1.5">
         <div className="scroll-thin flex min-w-0 flex-1 gap-0.5 overflow-x-auto">
           {TABS.map((t) => (
@@ -118,7 +120,7 @@ function Row({ id, cols, children }: { id: string; cols: string; children: React
 
 const Id = ({ id, sub }: { id: string; sub?: string }) => (
   <span className="flex min-w-0 items-center gap-1.5">
-    <span className="font-mono text-[11px] font-medium text-ink">{id}</span>
+    <span className="shrink-0 font-mono text-[11px] font-medium whitespace-nowrap text-ink">{id}</span>
     {sub ? <span className="truncate text-[10.5px] text-faint">{sub}</span> : null}
   </span>
 );

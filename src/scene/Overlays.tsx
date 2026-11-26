@@ -8,6 +8,7 @@ import { COLD_ROOMS, COMPARTMENTS, STATIONS, ZONE_BY_ID, corridorPath, pointAlon
 import { twin, useTwin, type HeatLayer } from "@/sim/store";
 import { STAGES, type Asset, type SimState, type StageVisit } from "@/sim/types";
 import { clockNow } from "@/lib/clock";
+import { useLabelSlot } from "./Tags";
 
 /* ------------------------------------------------------------------ */
 /* Selection + hover marker                                           */
@@ -322,14 +323,18 @@ export function TraceRoute() {
 function TraceLabel({ visit, n, progress }: { visit: StageVisit; n: number; progress: number }) {
   const st = STAGES.find((x) => x.key === visit.stage)!;
   const when = visit.status === "DONE" ? formatDayTime(visit.exitedAt) : visit.status === "ACTIVE" ? `now · ${formatNumber(progress * 100)} %` : formatDayTime(visit.enteredAt);
+  // Stage pins outrank ordinary tags so the route always reads in order.
+  const [anchorRef, setEl] = useLabelSlot(`trace:${visit.stage}`, 4.2);
   return (
-    <Html center position={[0, 3.6, 0]} zIndexRange={[28, 10]} style={{ pointerEvents: "none" }}>
-      <div className={`trace-pin trace-pin--${visit.status.toLowerCase()}`}>
-        <span className="trace-pin__n">{visit.status === "DONE" ? "✓" : n}</span>
-        <span className="trace-pin__stage">{st.short}</span>
-        <span className="trace-pin__when">{when}</span>
-      </div>
-    </Html>
+    <group ref={anchorRef} position={[0, 3.6, 0]}>
+      <Html center zIndexRange={[28, 10]} style={{ pointerEvents: "none" }}>
+        <div ref={setEl} className={`trace-pin trace-pin--${visit.status.toLowerCase()}`}>
+          <span className="trace-pin__n">{visit.status === "DONE" ? "✓" : n}</span>
+          <span className="trace-pin__stage">{st.short}</span>
+          <span className="trace-pin__when">{when}</span>
+        </div>
+      </Html>
+    </group>
   );
 }
 
