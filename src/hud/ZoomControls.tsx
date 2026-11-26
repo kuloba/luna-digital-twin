@@ -9,7 +9,7 @@ import { twin } from "@/sim/store";
  */
 export function ZoomControls() {
   return (
-    <div className="pointer-events-auto absolute right-[388px] bottom-[224px] z-20 flex flex-col gap-0.5 p-1 panel 2xl:right-[420px]">
+    <div className="pointer-events-auto absolute right-[388px] bottom-[236px] z-20 flex flex-col gap-0.5 p-1 panel 2xl:right-[420px]">
       <ZoomButton label="Zoom in" keys="+ or =" onClick={() => cameraNav.zoomStep?.(1)}>
         <Plus className="size-4" />
       </ZoomButton>
