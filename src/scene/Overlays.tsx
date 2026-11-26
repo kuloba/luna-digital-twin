@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { CanvasTexture, type Group, type Mesh, type MeshBasicMaterial, SRGBColorSpace, Vector3 } from "three";
 import { formatDayTime, formatNumber } from "@/lib/format";
 import { C, severityColor } from "@/lib/theme";
-import { edgeRates } from "@/sim/cv";
+import { CUCUMBER_STAGES, edgeRates, RIPENESS_STAGES, stageIndex } from "@/sim/cv";
 import { COLD_ROOMS, COMPARTMENTS, STATIONS, ZONE_BY_ID, corridorPath, pointAlong } from "@/sim/layout";
 import { twin, useTwin, type HeatLayer } from "@/sim/store";
 import { STAGES, type Asset, type SimState, type StageVisit } from "@/sim/types";
@@ -18,10 +18,57 @@ import { useLabelSlot } from "./Tags";
 export function SelectionMarker() {
   const selectedId = useTwin((s) => s.selectedId);
   const hoveredId = useTwin((s) => s.hoveredId);
+  const plantId = useTwin((s) => s.plantId);
   return (
     <group>
+      {plantId ? <PlantMarker plantId={plantId} /> : null}
       {hoveredId && hoveredId !== selectedId ? <Bracket id={hoveredId} color={C.slateBlue} opacity={0.6} /> : null}
       {selectedId ? <Bracket id={selectedId} color={C.luna} opacity={1} animated /> : null}
+    </group>
+  );
+}
+
+/** A pulsing ring at the selected plant's foot and a mast to its head, so one plant reads among 1,800. */
+function PlantMarker({ plantId }: { plantId: string }) {
+  const p = useTwin((s) => s.sim.cv[plantId.slice(0, 2)]?.plants[plantId]);
+  const ring = useRef<Mesh>(null);
+  useFrame(({ clock }) => {
+    if (!ring.current) return;
+    const t = (clock.elapsedTime % 1.6) / 1.6;
+    ring.current.scale.setScalar(0.4 + t * 0.9);
+    (ring.current.material as MeshBasicMaterial).opacity = 0.9 * (1 - t);
+  });
+  const [anchor, setEl] = useLabelSlot("plant", 4.8);
+  if (!p) return null;
+  const h = p.seen.height;
+  const comp = plantId.slice(0, 2);
+  const stages = comp === "G3" ? CUCUMBER_STAGES : RIPENESS_STAGES;
+  const ripest = stages[stageIndex(Math.max(...p.seen.trusses.map((t) => t.ripeness)))].label.toLowerCase();
+  return (
+    <group position={[p.x, 0, p.z]}>
+      <group ref={anchor} position={[0, h + 0.85, 0]}>
+        <Html center zIndexRange={[31, 10]} style={{ pointerEvents: "none" }}>
+          <div ref={setEl} className="spatial-tag spatial-tag--selected -translate-y-1/2">
+            <span className="spatial-tag__dot" style={{ background: C.luna }} />
+            <span className="spatial-tag__id">{plantId}</span>
+            <span className="spatial-tag__activity">
+              {p.seen.trusses.length} trusses · ripest {ripest}
+            </span>
+          </div>
+        </Html>
+      </group>
+      <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.62, 0]} renderOrder={5}>
+        <ringGeometry args={[0.55, 0.7, 40]} />
+        <meshBasicMaterial color={C.luna} transparent depthWrite={false} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, h / 2 + 0.3, 0]} renderOrder={5}>
+        <cylinderGeometry args={[0.045, 0.045, h + 0.6, 6]} />
+        <meshBasicMaterial color={C.luna} transparent opacity={0.85} depthTest={false} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, h + 0.65, 0]} renderOrder={5}>
+        <sphereGeometry args={[0.16, 12, 10]} />
+        <meshBasicMaterial color={C.luna} depthTest={false} toneMapped={false} />
+      </mesh>
     </group>
   );
 }

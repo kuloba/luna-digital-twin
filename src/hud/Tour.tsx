@@ -86,7 +86,7 @@ export const STEPS: Step[] = [
     enter: () => {
       const st = twin();
       st.selectPlant("G2-R04-P09", "G2-R04");
-      st.flyToAsset("G2-R04");
+      st.flyToPlant("G2-R04-P09");
     },
   },
   {

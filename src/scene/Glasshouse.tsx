@@ -275,8 +275,9 @@ function Plants({ comp }: { comp: CompartmentCv }) {
         <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial roughness={0.95} flatShading />
       </instancedMesh>
-      <instancedMesh ref={fruits} args={[undefined, undefined, plants.length * TRUSS_MAX]} castShadow onClick={(e) => onClick(e, TRUSS_MAX)} onPointerOver={(e) => onOver(e, TRUSS_MAX)} onPointerOut={onOut}>
-        <sphereGeometry args={[1, 10, 8]} />
+      {/* Trusses are a few pixels across at most zooms: a light sphere and no shadow pass keeps 5,400 of them cheap. */}
+      <instancedMesh ref={fruits} args={[undefined, undefined, plants.length * TRUSS_MAX]} onClick={(e) => onClick(e, TRUSS_MAX)} onPointerOver={(e) => onOver(e, TRUSS_MAX)} onPointerOut={onOut}>
+        <sphereGeometry args={[1, 8, 6]} />
         <meshStandardMaterial roughness={0.35} />
       </instancedMesh>
       <instancedMesh ref={flowers} args={[undefined, undefined, plants.length]}>

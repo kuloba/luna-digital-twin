@@ -63,6 +63,8 @@ interface UiState {
   selectBatch(id: string, opts?: { trace?: boolean; fly?: boolean }): void;
   flyToZone(zone: ZoneId | "SITE"): void;
   flyToAsset(id: string): void;
+  /** Frame one glasshouse plant close up. */
+  flyToPlant(plantId: string): void;
   setRole(role: Role): void;
   setLayer<K extends keyof UiState["layers"]>(k: K, v: UiState["layers"][K]): void;
   setRightPanel(p: RightPanel): void;
@@ -167,6 +169,13 @@ export const useTwin = create<UiState>((set, get) => ({
     // Frame the asset with its surroundings, never tighter than ~26 m.
     const span = Math.max(26, Math.max(w, d) * 1.5);
     set({ focus: a.zoneId, camera: { target: [a.position[0], a.position[1] + h / 2, a.position[2]], extent: [span, Math.min(h, 6), span * 0.75], n: cameraN++ } });
+  },
+
+  flyToPlant(plantId) {
+    const comp = get().sim.cv[plantId.slice(0, 2)];
+    const p = comp?.plants[plantId];
+    if (!p) return;
+    set({ focus: "GH", camera: { target: [p.x, 1.6, p.z], extent: [17, 3.6, 13], n: cameraN++ } });
   },
 
   setRole(role) {
