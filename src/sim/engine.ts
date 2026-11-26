@@ -296,8 +296,6 @@ function stepProduction(s: SimState) {
   for (const id of ["CAM-G1", "CAM-G2", "CAM-G3"]) {
     const c = s.assets[id];
     c.progress = ((c.progress ?? 0) + 0.0045) % 1;
-    const d = c.detail ?? {};
-    c.detail = { ...d, images: Number(d.images ?? 0) + 3 };
   }
 
   // Seeder + packing counters.

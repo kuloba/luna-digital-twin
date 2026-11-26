@@ -12,7 +12,7 @@ export const METRIC_PRESETS: Record<MetricKey, Preset> = {
   dli: { label: "DLI", unit: "mol/m²/d", setpoint: 17, low: 15, high: 19, noise: 0.02, response: 0.05, precision: 1 },
   ec: { label: "EC", unit: "mS/cm", setpoint: 1.8, low: 1.6, high: 2.05, noise: 0.006, response: 0.12, precision: 2 },
   ph: { label: "pH", unit: "", setpoint: 5.9, low: 5.6, high: 6.2, noise: 0.006, response: 0.12, precision: 2 },
-  waterTemp: { label: "Root-zone temp", unit: "°C", setpoint: 20, low: 18, high: 22, noise: 0.03, response: 0.1, precision: 1 },
+  waterTemp: { label: "Root zone", unit: "°C", setpoint: 20, low: 18, high: 22, noise: 0.03, response: 0.1, precision: 1 },
   do: { label: "Dissolved O₂", unit: "mg/L", setpoint: 8.3, low: 7, high: 9.6, noise: 0.03, response: 0.1, precision: 1 },
   moisture: { label: "Substrate moisture", unit: "%", setpoint: 64, low: 56, high: 72, noise: 0.2, response: 0.08, precision: 0 },
   germination: { label: "Germination", unit: "%", setpoint: 96, low: 90, high: 100, noise: 0.05, response: 0.05, precision: 1 },

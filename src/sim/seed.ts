@@ -261,10 +261,11 @@ function buildAssets(batches: Record<string, Batch>): Record<string, Asset> {
       status: "ACTIVE", activity: c.id === "G3" ? "Picking · row 6" : "Day · vents 18 %", batchId: ghBatch[c.id],
       metrics: { temp, rh, vpd: metric("vpd", { value: vpdOf(temp.value, rh.value), low: 0.5, high: 1.1, setpoint: 0.65 }), co2: metric("co2", { setpoint: 780, low: 650, high: 950 }), ppfd: metric("ppfd", { label: "PAR at head", setpoint: 410, low: 300, high: 700, noise: 6 }), dli: metric("dli", { setpoint: 15, value: 9.4, low: 0, high: 30 }) },
       detail: { crop: c.id === "G3" ? "Mini Cucumber · Proloog" : "Tomato · Merlice", area: "4,940 m²", vents: "18 %", screen: "Energy 0 %", heating: "Pipe 38 °C", avgFruitWeight: c.id === "G3" ? "118 g" : c.id === "G1" ? "132 g" : "126 g" } });
+    rand(); // the old image-count draw: keeps every later seeded value unchanged
     add(assets, { id: `CAM-${c.id}`, kind: "CAMERA", name: `LUNA Camera Rail ${c.id}`, zoneId: "GH", roomId: c.id, position: [(x0 + x1) / 2, 4.6, (z0 + z1) / 2], size: [x1 - x0, 0.4, 0.6],
       status: "ACTIVE", activity: "Scanning", progress: 0.2 + 0.25 * COMPARTMENTS.indexOf(c),
       metrics: { coverage: metric("coverage", { setpoint: 100, value: 100 }) },
-      detail: { images: 18_400 + Math.round(rand() * 2_000), plantsCounted: 6_120, flowers: c.id === "G3" ? "—" : "4.2 / truss", fruit: c.id === "G3" ? "11.3 / plant" : "6.8 trusses", pestFlags: c.id === "G2" ? 2 : 0 } });
+      detail: { cameras: "6 × 12 MP, ring-lit", passInterval: "~2.5 h", edgeModels: "Truss · ripeness · pests", imagesKeptOnSite: "30 days" } });
   }
 
   // Harvest.

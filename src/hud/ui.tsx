@@ -125,11 +125,16 @@ export function MetricTile({ metric, label, compact, className }: { metric: Metr
         {!compact ? <Sparkline data={metric.history.slice(-40)} color={color} width={64} height={22} band={[metric.low, metric.high]} fill={false} /> : null}
       </div>
       <BandMeter metric={metric} />
-      <div className="flex justify-between font-mono text-[9.5px] text-faint tabular">
-        <span>{formatNumber(metric.low, metric.precision)}</span>
-        <span>target {formatNumber(metric.setpoint, metric.precision)}</span>
-        <span>{formatNumber(metric.high, metric.precision)}</span>
-      </div>
+      {compact ? (
+        // Narrow tiles: the band is on the meter, so only the target needs words.
+        <div className="text-center font-mono text-[9.5px] text-faint tabular">target {formatNumber(metric.setpoint, metric.precision)}</div>
+      ) : (
+        <div className="flex justify-between font-mono text-[9.5px] text-faint tabular">
+          <span>{formatNumber(metric.low, metric.precision)}</span>
+          <span>target {formatNumber(metric.setpoint, metric.precision)}</span>
+          <span>{formatNumber(metric.high, metric.precision)}</span>
+        </div>
+      )}
     </div>
   );
 }
