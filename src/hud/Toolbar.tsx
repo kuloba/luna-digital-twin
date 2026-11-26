@@ -36,7 +36,7 @@ export function Toolbar() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
   return (
-    <div ref={ref} data-tour="toolbar" className="pointer-events-auto absolute top-[232px] left-4 z-20 flex items-start gap-2">
+    <div ref={ref} data-tour="toolbar" className="pointer-events-auto absolute top-[232px] left-4 z-20 flex items-start gap-2 [@media(max-height:780px)]:top-[212px]">
       <div className="flex flex-col gap-0.5 p-1 panel">
         <ToolButton title="Labels (L)" active={layers.labels} onClick={() => setLayer("labels", !layers.labels)}>
           <Tag className="size-4" />
@@ -83,7 +83,7 @@ function ToolButton({ title, active, onClick, children }: { title: string; activ
       aria-label={title}
       aria-pressed={active}
       onClick={onClick}
-      className={cn("flex size-9 items-center justify-center rounded-[10px] text-ink-2 transition-colors hover:bg-[#f1f4f7]", active && "bg-luna-soft text-luna-ink ring-1 ring-[#f8dcb0] ring-inset hover:bg-luna-soft")}
+      className={cn("flex size-9 items-center justify-center rounded-[10px] [@media(max-height:780px)]:size-8 text-ink-2 transition-colors hover:bg-[#f1f4f7]", active && "bg-luna-soft text-luna-ink ring-1 ring-[#f8dcb0] ring-inset hover:bg-luna-soft")}
     >
       {children}
     </button>
