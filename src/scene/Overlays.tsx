@@ -1,11 +1,12 @@
-import { Line } from "@react-three/drei";
+import { Html, Line } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { CanvasTexture, type Group, type Mesh, type MeshBasicMaterial, SRGBColorSpace } from "three";
+import { formatDayTime, formatNumber } from "@/lib/format";
 import { C, severityColor } from "@/lib/theme";
 import { COLD_ROOMS, COMPARTMENTS, STATIONS, ZONE_BY_ID, corridorPath, pointAlong } from "@/sim/layout";
 import { twin, useTwin, type HeatLayer } from "@/sim/store";
-import type { Asset, SimState } from "@/sim/types";
+import { STAGES, type Asset, type SimState, type StageVisit } from "@/sim/types";
 
 /* ------------------------------------------------------------------ */
 /* Selection + hover marker                                           */
@@ -266,19 +267,20 @@ export function TraceRoute() {
   const on = useTwin((s) => s.layers.trace);
   const batchId = useTwin((s) => s.batchId);
   const route = useTwin((s) => s.sim.batches[s.batchId]?.route);
+  const progress = useTwin((s) => Math.round((s.sim.batches[s.batchId]?.stageProgress ?? 0) * 100) / 100);
   const assets = useTwin((s) => s.sim.assets);
   const lineRef = useRef<{ material: { dashOffset: number } } | null>(null);
   const { done, todo, nodes } = useMemo(() => {
     if (!route) return { done: [], todo: [], nodes: [] };
-    const nodes: { p: [number, number, number]; status: string; label: string }[] = [];
-    for (const v of route) {
+    const nodes: { p: [number, number, number]; status: string; label: string; visit: StageVisit; n: number }[] = [];
+    route.forEach((v, n) => {
       const ids = v.assetIds.filter((id) => assets[id]);
-      if (!ids.length) continue;
+      if (!ids.length) return;
       // Average the assets of this stage into one node.
       const x = ids.reduce((acc, id) => acc + assets[id].position[0], 0) / ids.length;
       const z = ids.reduce((acc, id) => acc + assets[id].position[2], 0) / ids.length;
-      nodes.push({ p: [x, 0.25, z], status: v.status, label: v.stage });
-    }
+      nodes.push({ p: [x, 0.25, z], status: v.status, label: v.stage, visit: v, n: n + 1 });
+    });
     const done: [number, number, number][] = [];
     const todo: [number, number, number][] = [];
     for (let i = 1; i < nodes.length; i++) {
@@ -300,15 +302,33 @@ export function TraceRoute() {
   void batchId;
   return (
     <group>
-      {done.length > 1 ? <Line points={done} color={C.luna} lineWidth={4} /> : null}
-      {todo.length > 1 ? <Line ref={lineRef as never} points={todo} color={C.slateBlue} lineWidth={3} dashed dashSize={1.2} gapSize={0.8} /> : null}
+      {done.length > 1 ? <Line points={done} color={C.luna} lineWidth={5} /> : null}
+      {todo.length > 1 ? <Line ref={lineRef as never} points={todo} color={C.slateBlue} lineWidth={3.5} dashed dashSize={1.2} gapSize={0.8} /> : null}
       {nodes.map((n, i) => (
-        <mesh key={i} position={n.p}>
-          <sphereGeometry args={[0.55, 20, 14]} />
-          <meshBasicMaterial color={n.status === "PLANNED" ? C.slateBlue : n.status === "ACTIVE" ? C.luna : C.green} toneMapped={false} />
-        </mesh>
+        <group key={i} position={n.p}>
+          <mesh>
+            <sphereGeometry args={[0.7, 20, 14]} />
+            <meshBasicMaterial color={n.status === "PLANNED" ? C.slateBlue : n.status === "ACTIVE" ? C.luna : C.green} toneMapped={false} />
+          </mesh>
+          <TraceLabel visit={n.visit} n={n.n} progress={progress} />
+        </group>
       ))}
     </group>
+  );
+}
+
+/** A stage pin on the traced route: which step, and when it happened or will. */
+function TraceLabel({ visit, n, progress }: { visit: StageVisit; n: number; progress: number }) {
+  const st = STAGES.find((x) => x.key === visit.stage)!;
+  const when = visit.status === "DONE" ? formatDayTime(visit.exitedAt) : visit.status === "ACTIVE" ? `now · ${formatNumber(progress * 100)} %` : formatDayTime(visit.enteredAt);
+  return (
+    <Html center position={[0, 2.4, 0]} zIndexRange={[28, 10]} style={{ pointerEvents: "none" }}>
+      <div className={`trace-pin trace-pin--${visit.status.toLowerCase()}`}>
+        <span className="trace-pin__n">{visit.status === "DONE" ? "✓" : n}</span>
+        <span className="trace-pin__stage">{st.short}</span>
+        <span className="trace-pin__when">{when}</span>
+      </div>
+    </Html>
   );
 }
 

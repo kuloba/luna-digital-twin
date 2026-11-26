@@ -16,11 +16,14 @@ import type { Asset, SimState } from "@/sim/types";
 
 const SITE_CURATED = ["HRV-01", "QA-02", "CAM-G1", "CAM-G2", "SEED-01", "TRK-2", "MIX-01", "EDGE-01", "C-02", "TANK-B"];
 
-function pickTags(s: SimState, focus: string, selectedId?: string, hoveredId?: string): string[] {
+function pickTags(s: SimState, focus: string, selectedId?: string, hoveredId?: string, trace = false): string[] {
   const out = new Set<string>();
   for (const a of s.alerts) if (a.status !== "RESOLVED") out.add(a.assetId);
   if (selectedId) out.add(selectedId);
   if (hoveredId) out.add(hoveredId);
+  // While a batch route is drawn, its stage pins carry the story — keep
+  // only alerts and the selection so nothing sits on top of the route.
+  if (trace && focus === "SITE") return [...out].filter((id) => s.assets[id]);
   if (focus === "SITE") {
     SITE_CURATED.forEach((id) => out.add(id));
     let n = 0;
@@ -31,18 +34,29 @@ function pickTags(s: SimState, focus: string, selectedId?: string, hoveredId?: s
       }
     }
   } else {
+    // Inside a zone: its machines, a few towers mid-irrigation and at most two
+    // loaded robots. Routine motion is visible in 3D; tags are for what you'd
+    // click next, so the budget stays small enough to read at a glance.
     let towers = 0;
+    let robots = 0;
     for (const a of Object.values(s.assets)) {
       if (a.zoneId !== focus) continue;
-      if (a.kind === "ROW") continue;
+      if (a.kind === "ROW" || a.kind === "ROOM" || a.kind === "COMPARTMENT") continue;
       if (a.kind === "TOWER") {
-        if (a.activity === "Irrigating" && towers < 6) {
+        if (a.activity === "Irrigating" && towers < 3) {
           out.add(a.id);
           towers++;
         }
         continue;
       }
-      if (a.kind === "ROOM" || a.kind === "COMPARTMENT") continue;
+      if (a.kind === "AMR") {
+        const r = s.amrs[a.id];
+        if (r?.state === "TRANSPORTING" && (a.metrics.payload?.value ?? 0) > 0 && robots < 2) {
+          out.add(a.id);
+          robots++;
+        }
+        continue;
+      }
       out.add(a.id);
     }
   }
@@ -54,11 +68,12 @@ export function SpatialTags() {
   const focus = useTwin((s) => s.focus);
   const selectedId = useTwin((s) => s.selectedId);
   const hoveredId = useTwin((s) => s.hoveredId);
+  const trace = useTwin((s) => s.layers.trace);
   const tick = useTwin((s) => Math.floor(s.sim.tick / 3));
   const ids = useMemo(() => {
     void tick;
-    return pickTags(twin().sim, focus, selectedId, hoveredId);
-  }, [focus, selectedId, hoveredId, tick]);
+    return pickTags(twin().sim, focus, selectedId, hoveredId, trace);
+  }, [focus, selectedId, hoveredId, trace, tick]);
   if (!on) return null;
   return (
     <group>
@@ -71,7 +86,9 @@ export function SpatialTags() {
 
 function anchor(a: Asset): [number, number, number] {
   const top = a.position[1] + a.size[1];
-  if (a.kind === "ROOM" || a.kind === "COMPARTMENT" || a.kind === "COLD_ROOM") return [a.position[0], top + 0.6, a.position[2]];
+  // Rooms float well above their towers so the room chip never sits on a tower chip.
+  if (a.kind === "ROOM" || a.kind === "COMPARTMENT") return [a.position[0], top + 2.4, a.position[2]];
+  if (a.kind === "COLD_ROOM") return [a.position[0], top + 0.6, a.position[2]];
   if (a.kind === "CAMERA") return [a.position[0], 5.2, a.position[2] - 8];
   if (a.kind === "ROW") return [a.position[0], 4.1, a.position[2] - 9];
   if (a.kind === "TRUCK") return [a.position[0], 4.4, a.position[2] + 1];

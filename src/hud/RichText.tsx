@@ -77,7 +77,7 @@ export function EntityChip({ id, size = "md", className }: { id: string; size?: 
       onMouseEnter={() => twin().sim.assets[id] && twin().hover(id)}
       onMouseLeave={() => twin().hover(undefined)}
       className={cn(
-        "mx-px inline-flex translate-y-[-1px] items-center gap-1 rounded-[6px] bg-[#f1f4f7] align-middle font-mono font-medium text-ink ring-1 ring-[#e1e7ed] transition ring-inset hover:bg-luna-soft hover:ring-[#f8dcb0]",
+        "mx-px inline-flex shrink-0 translate-y-[-1px] items-center gap-1 rounded-[6px] whitespace-nowrap bg-[#f1f4f7] align-middle font-mono font-medium text-ink ring-1 ring-[#e1e7ed] transition ring-inset hover:bg-luna-soft hover:ring-[#f8dcb0]",
         size === "sm" ? "h-[17px] px-1 text-[10px]" : "h-[19px] px-1.5 text-[10.5px]",
         className,
       )}

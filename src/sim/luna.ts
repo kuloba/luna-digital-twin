@@ -31,7 +31,9 @@ export function shiftBrief(s: SimState, role: Role) {
   const stage = STAGES.find((st) => st.key === let1124.stage)?.short ?? "";
 
   let headline: string;
-  if (alerts.length === 0) headline = "The facility is steady. Nothing needs you right now.";
+  const verifying = s.alerts.filter((a) => a.status === "RESOLVING");
+  if (alerts.length === 0 && verifying.length) headline = `Nothing needs you right now — Luna is verifying the fix on [[${verifying[0].assetId}]].`;
+  else if (alerts.length === 0) headline = "The facility is steady. Nothing needs you right now.";
   else if (alerts.length === 1) headline = `One thing needs you: ${lower(alerts[0].recommendation.title)}.`;
   else headline = `${alerts.length} things need you — start with ${alerts[0].zoneId === "V2" ? "Grow Room V2's climate" : `[[${alerts[0].assetId}]]`}.`;
 

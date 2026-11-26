@@ -15,6 +15,9 @@ export function TopBar() {
           <span className="text-[14px] font-semibold tracking-[0.12em] text-ink">LUNA</span>
           <span className="mt-1 text-[10px] font-medium tracking-[0.06em] text-faint uppercase">Twin</span>
         </div>
+        <span title="Independent concept demo running on a simulated facility — not a shipping product" className="ml-0.5 rounded-full bg-[#f3f6f8] px-2 py-[3px] font-mono text-[9.5px] font-medium tracking-[0.06em] text-muted uppercase ring-1 ring-line ring-inset">
+          Concept
+        </span>
       </div>
       <div className="h-7 w-px bg-line" />
       <ZoneSwitcher />

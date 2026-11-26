@@ -16,13 +16,15 @@ export function askLuna(prompt: string, opts: { open?: boolean } = {}) {
     const r = reply(prompt, s.sim, s.role);
     const total = textLength(r.text);
     s.updateChat(id, { text: r.text, alertId: r.alertId, shown: 0 });
-    const stepSize = Math.max(2, Math.round(total / 70));
-    let shown = 0;
+    // Reveal by wall-clock time, not by timer ticks, so a busy main thread
+    // (WebGL + 1 Hz sim) never slows the answer down — it lands in ~1–2 s.
+    const duration = Math.min(2000, Math.max(800, total * 6));
+    const start = performance.now();
     const iv = window.setInterval(() => {
-      shown = Math.min(total, shown + stepSize);
+      const shown = Math.min(total, Math.ceil((total * (performance.now() - start)) / duration));
       twin().updateChat(id, { shown });
       if (shown >= total) window.clearInterval(iv);
-    }, 22);
+    }, 30);
   }, 700);
   return id;
 }

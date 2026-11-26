@@ -1,4 +1,4 @@
-import { stepCv } from "./cv";
+import { stepCv, summarise } from "./cv";
 import { INCIDENTS, INCIDENT_BY_ID } from "./incidents";
 import { CHARGE_PADS, STATIONS, ZONES, corridorPath, pathLength, pointAlong } from "./layout";
 import { jitter, rand, vpdOf } from "./metrics";
@@ -174,6 +174,9 @@ function stepAmr(s: SimState, r: AmrRuntime) {
       } else {
         r.state = "LOADING";
         r.dwell = 3 + Math.round(rand() * 4);
+        const m = r.mission;
+        const recent = s.feed.some((e) => e.assetId?.startsWith("AMR-") && s.lastTickAt - e.at < 20_000);
+        if (!recent && m.trays > 0) feed(s, "info", `${r.id} dropped ${m.trays} trays${m.batchId ? ` of ${m.batchId}` : ""} at ${STATIONS[m.to]?.name ?? m.to}.`, r.id);
         s.kpis.traysPerHour = Math.round(s.kpis.traysPerHour * 0.9 + (230 + rand() * 40) * 0.1);
       }
       r.mission = undefined;
@@ -419,11 +422,17 @@ function stepTanks(s: SimState) {
     lvl("TANK-ACID").value = Math.max(2, lvl("TANK-ACID").value - 0.006);
     lvl("DRAIN-01").value = Math.max(5, lvl("DRAIN-01").value - 0.25);
     mixAsset.activity = "Refilling · blending 40 % drain";
-    if (mix.value >= 92) mixAsset.detail = { ...mixAsset.detail, filling: false };
+    if (mix.value >= 92) {
+      mixAsset.detail = { ...mixAsset.detail, filling: false };
+      feed(s, "positive", `MIX-01 refilled to 92 % — EC ${mixAsset.metrics.ec!.value.toFixed(2)}, pH ${mixAsset.metrics.ph!.value.toFixed(2)}. Irrigation to G1 resumed.`, "MIX-01");
+    }
   } else {
     mix.value = Math.max(0, mix.value - 0.11);
     mixAsset.activity = "Irrigating G1 · valve 4";
-    if (mix.value < 58) mixAsset.detail = { ...mixAsset.detail, filling: true };
+    if (mix.value < 58) {
+      mixAsset.detail = { ...mixAsset.detail, filling: true };
+      feed(s, "info", "MIX-01 low — refilling from rainwater with 40 % UV-treated drain water.", "MIX-01");
+    }
   }
   lvl("DRAIN-01").value = Math.min(80, lvl("DRAIN-01").value + 0.035);
   lvl("RAIN-01").value = Math.min(95, lvl("RAIN-01").value + 0.004);
@@ -485,7 +494,15 @@ export function step(prev: SimState): SimState {
   }
   stepProduction(s);
   stepTanks(s);
+  const passes: Record<string, number> = {};
+  for (const c of Object.values(s.cv)) passes[c.id] = c.passes;
   stepCv(s);
+  for (const c of Object.values(s.cv)) {
+    if (c.passes === passes[c.id]) continue;
+    const sum = summarise(Object.values(c.plants), c.crop);
+    const pests = sum.pests.map((p) => p.kind.toLowerCase()).join(" and ");
+    feed(s, "info", `Camera pass ${c.passes} done in ${c.id}: ${Math.round(sum.plants).toLocaleString("en-US")} plants re-scored on the edge${pests ? `, ${pests} still flagged` : ", no pests"}.`, `CAM-${c.id}`);
+  }
   stepKpis(s);
   return s;
 }
@@ -513,13 +530,50 @@ export function trigger(prev: SimState, incidentId: string, headStart = 0): SimS
   const s: SimState = structuredClone(prev);
   const def = INCIDENT_BY_ID[incidentId];
   const rt = s.incidents[incidentId] ?? { id: incidentId, phase: "DORMANT", t: 0, armAt: 0, occurrences: 0 };
-  if (rt.phase === "DRIFTING" || rt.phase === "RESOLVING") return prev;
-  rt.phase = "DRIFTING";
-  rt.t = 0;
-  rt.occurrences += 1;
+  if (rt.phase === "RESOLVING") return prev;
+  if (rt.phase !== "DRIFTING") {
+    rt.phase = "DRIFTING";
+    rt.t = 0;
+    rt.occurrences += 1;
+  }
   s.incidents[incidentId] = rt;
-  for (let i = 0; i < headStart; i++) def.drift(s, i);
+  for (let i = rt.t; i < headStart; i++) def.drift(s, i);
+  rt.t = Math.max(rt.t, headStart);
+  if (headStart > 0) fastForward(s);
   return s;
+}
+
+/**
+ * Bring biased metrics most of the way to their drifted value and back-fill
+ * a rising ramp into their history, as if the drift had been building for
+ * the last half hour. Used when the guided demo starts an incident.
+ */
+function fastForward(s: SimState) {
+  for (const a of Object.values(s.assets)) {
+    let touched = false;
+    for (const m of Object.values(a.metrics)) {
+      if (!m || DERIVED.has(m.key) || m.bias === 0) continue;
+      const from = m.value;
+      m.value = m.setpoint + m.bias * 0.9;
+      ramp(m.history, from, m.value);
+      touched = true;
+    }
+    const { temp, rh, vpd } = a.metrics;
+    if (touched && temp && rh && vpd) {
+      const from = vpd.value;
+      vpd.value = vpdOf(temp.value, Math.min(99, Math.max(5, rh.value)));
+      ramp(vpd.history, from, vpd.value);
+    }
+  }
+}
+
+function ramp(history: number[], from: number, to: number, n = 36) {
+  const start = Math.max(0, history.length - n);
+  const len = history.length - start;
+  for (let i = 0; i < len; i++) {
+    const f = Math.pow((i + 1) / len, 1.6);
+    history[start + i] = from + (to - from) * f + jitter(Math.abs(to - from) * 0.02);
+  }
 }
 
 /** Interpolated AMR pose for smooth rendering between ticks. */

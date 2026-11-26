@@ -87,7 +87,7 @@ function Brief() {
       </ul>
 
       {cards.length ? (
-        <Section title={`Needs you · ${cards.filter((c) => c.status === "OPEN").length}`} className="mt-5">
+        <Section title={needsTitle(cards)} className="mt-5">
           <div className="flex flex-col gap-2.5">
             <AnimatePresence initial={false}>
               {cards.map((a) => (
@@ -354,4 +354,10 @@ function ChatAlert({ id, alerts }: { id: string; alerts: Alert[] }) {
       <AlertCard alert={a} compact />
     </div>
   );
+}
+
+function needsTitle(cards: { status: string }[]) {
+  const open = cards.filter((c) => c.status === "OPEN").length;
+  const verifying = cards.filter((c) => c.status === "RESOLVING").length;
+  return `Needs you · ${open}${verifying ? ` · ${verifying} verifying` : ""}`;
 }

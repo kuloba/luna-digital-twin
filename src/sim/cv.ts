@@ -36,12 +36,25 @@ const PEST_SPOTS: Record<string, { row: number; idx: number; kind: PestKind; rad
   G3: [{ row: 8, idx: 15, kind: "Powdery mildew", radius: 1.2, level: 0.3 }],
 };
 
+/**
+ * Light and heat are not uniform across a compartment: rows by the gable and
+ * under the screen-roll ripen slower, and G2's whitefly rows are set back.
+ * This is what makes the yield lens worth looking at.
+ */
+function rowLight(comp: string, row: number) {
+  const gable = row === 0 || row === ROWS_PER_COMPARTMENT - 1 ? -0.09 : row === 1 || row === ROWS_PER_COMPARTMENT - 2 ? -0.04 : 0;
+  const centre = 0.05 * Math.cos(((row - 4.5) / 4.5) * Math.PI * 0.5);
+  const pest = comp === "G2" && row >= 2 && row <= 4 ? -0.07 : 0;
+  const pipe = comp === "G1" && row === 6 ? -0.05 : 0;
+  return 1 + gable + centre + pest + pipe;
+}
+
 function makePlant(comp: string, crop: CompartmentCv["crop"], row: number, idx: number, x: number, z: number, maturity: number): Plant {
   const trussCount = crop === "TOMATO" ? 7 + Math.round(rand() * 2) : 5 + Math.round(rand() * 2);
   const trusses = Array.from({ length: trussCount }, (_, t) => {
     const h = (t + 0.4 + rand() * 0.25) / (trussCount + 0.4);
     // Lower trusses are older → riper. Maturity shifts the whole curve.
-    const ripe = Math.max(0, Math.min(5.4, (1 - h) * 6.2 * maturity - 0.6 + (rand() - 0.5) * 1.1));
+    const ripe = Math.max(0, Math.min(5.4, (1 - h) * 6.2 * maturity * rowLight(comp, row) - 0.6 + (rand() - 0.5) * 1.1));
     return { h, ripeness: ripe, fruits: crop === "TOMATO" ? 4 + Math.round(rand() * 2) : 1 + Math.round(rand() * 1.4) };
   });
   // Edge plants and a soft gradient across the house make the yield map interesting.

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { approve, step, trigger } from "./engine";
+import { amrPose, approve, step, trigger } from "./engine";
 import { ZONE_BY_ID } from "./layout";
 import { createInitialState } from "./seed";
 import type { SimState, Vec3, ZoneId } from "./types";
@@ -146,9 +146,17 @@ export const useTwin = create<UiState>((set, get) => ({
   },
 
   flyToAsset(id) {
-    const a = get().sim.assets[id];
+    const sim = get().sim;
+    const a = sim.assets[id];
     if (!a) return;
     const [w, h, d] = a.size;
+    const r = sim.amrs[id];
+    if (r) {
+      // Robots move: frame where the robot is now, not its charge pad.
+      const p = amrPose(r, sim.lastTickAt, Date.now());
+      set({ focus: a.zoneId, camera: { target: [p.x, 0.5, p.z], extent: [30, 2, 22], n: cameraN++ } });
+      return;
+    }
     // Frame the asset with its surroundings, never tighter than ~26 m.
     const span = Math.max(26, Math.max(w, d) * 1.5);
     set({ focus: a.zoneId, camera: { target: [a.position[0], a.position[1] + h / 2, a.position[2]], extent: [span, Math.min(h, 6), span * 0.75], n: cameraN++ } });

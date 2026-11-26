@@ -227,3 +227,54 @@ body,
 .typing-dot:nth-child(3) {
   animation-delay: 0.3s;
 }
+
+/* Batch trace stage pins ------------------------------------------------ */
+.trace-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 3px;
+  border-radius: 999px;
+  background: #0f1b2a;
+  color: #fff;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 16px;
+  box-shadow: 0 6px 16px -4px rgb(15 27 42 / 0.45);
+}
+.trace-pin__n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  background: #5b7aa6;
+  color: #fff;
+}
+.trace-pin__stage {
+  font-weight: 600;
+}
+.trace-pin__when {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgb(255 255 255 / 0.6);
+}
+.trace-pin--done .trace-pin__n {
+  background: #2f9e5b;
+}
+.trace-pin--active {
+  background: #fff6e6;
+  color: #3d2600;
+  box-shadow: 0 0 0 1.5px #f0a43a, 0 8px 18px -4px rgb(240 164 58 / 0.5);
+}
+.trace-pin--active .trace-pin__n {
+  background: #f0a43a;
+  color: #3d2600;
+}
+.trace-pin--active .trace-pin__when {
+  color: #9a5b05;
+}

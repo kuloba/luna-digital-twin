@@ -128,7 +128,9 @@ const R = ({ children, className }: { children: ReactNode; className?: string })
 function Val({ m, digits }: { m?: Metric; digits?: number }) {
   if (!m) return <R className="text-faint">—</R>;
   const tone = inBand(m) ? "" : deviation(m) > 0.35 ? "text-crit font-medium" : "text-[#b26b00] font-medium";
-  return <R className={tone}>{formatNumber(m.value, digits ?? m.precision)}</R>;
+  const d = digits ?? m.precision;
+  const v = Math.abs(m.value) < 0.5 * 10 ** -d ? 0 : m.value;
+  return <R className={tone}>{formatNumber(v, d)}</R>;
 }
 
 function statusPill(a: Asset, sim: SimState) {

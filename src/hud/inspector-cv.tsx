@@ -70,6 +70,7 @@ export function CompartmentVision({ compId }: { compId: string }) {
   const sum = useMemo(() => summarise(Object.values(comp.plants), comp.crop, comp.imagesToday), [comp]);
   const rows = useMemo(() => comp.rows.map((r) => ({ row: r, y: rowYield(comp, r), pests: r.plantIds.filter((id) => (comp.plants[id].seen.pestLevel ?? 0) > 0.08).length })), [comp]);
   const maxY = Math.max(...rows.map((r) => r.y), 0.01);
+  const minY = Math.min(...rows.map((r) => r.y));
   const tomato = comp.crop === "TOMATO";
   return (
     <>
@@ -132,7 +133,7 @@ export function CompartmentVision({ compId }: { compId: string }) {
               className="group flex h-full flex-1 flex-col items-center justify-end gap-1"
             >
               {pests ? <span className="size-1.5 rounded-full bg-warn" /> : null}
-              <span className="w-full rounded-t-[4px] bg-[#7fb48c] transition-all group-hover:bg-[#2f9e5b]" style={{ height: `${Math.max(8, (y / maxY) * 100)}%` }} />
+              <span className="w-full rounded-t-[4px] bg-[#7fb48c] transition-all group-hover:bg-[#2f9e5b]" style={{ height: `${24 + ((y - minY) / Math.max(0.001, maxY - minY)) * 76}%` }} />
               <span className="font-mono text-[9px] text-faint">{row.index + 1}</span>
             </button>
           ))}

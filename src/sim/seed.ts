@@ -1,7 +1,7 @@
 import { createCv } from "./cv";
 import { CHARGE_PADS, COLD_ROOMS, COMPARTMENTS, TANKS, TOWER_ROWS, TOWER_SIZE, ZONE_BY_ID, towerZ } from "./layout";
 import { metric, rand, resetRand, vpdOf } from "./metrics";
-import type { AmrRuntime, Asset, Batch, Kpis, SimState, StageKey, StageVisit } from "./types";
+import type { AmrRuntime, Asset, Batch, FeedEvent, Kpis, SimState, StageKey, StageVisit } from "./types";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -385,6 +385,21 @@ function buildAssets(batches: Record<string, Batch>): Record<string, Asset> {
   return assets;
 }
 
+/** What happened earlier in the shift, so the feed has context at load. */
+function initialFeed(now: number): FeedEvent[] {
+  const MIN = 60_000;
+  const ev = (mins: number, tone: FeedEvent["tone"], text: string, assetId?: string): FeedEvent => ({ id: `ev-seed-${mins}`, at: now - mins * MIN, tone, text, assetId });
+  return [
+    ev(9, "info", "TRK-1 started loading for Puget Provisions — 21 of 26 pallets staged.", "TRK-1"),
+    ev(22, "positive", "LET-1124 entered Automated Harvest on HRV-01.", "HRV-01"),
+    ev(31, "warning", "Whitefly flagged on 101 plants in G2 rows 3–5 — scout requested for 11:00.", "CAM-G2"),
+    ev(48, "info", "HRV-02 blade change started; LET-1127 moved to HRV-01's queue.", "HRV-02"),
+    ev(74, "positive", "Resolved: CR-1 door seal reset — room back to 2.0 °C within 6 min.", "CR-1"),
+    ev(96, "positive", "QA-01 checkweigher calibrated against reference weights.", "QA-01"),
+    ev(128, "info", "Night shift handover: no open alerts, 14 batches on plan.", undefined),
+  ];
+}
+
 function buildAmrs(): Record<string, AmrRuntime> {
   const amrs: Record<string, AmrRuntime> = {};
   for (let i = 1; i <= 10; i++) {
@@ -456,7 +471,7 @@ export function createInitialState(now = Date.now()): SimState {
     amrs: buildAmrs(),
     batches,
     alerts: [],
-    feed: [],
+    feed: initialFeed(now),
     kpis: buildKpis(now),
     incidents: {},
     cv: createCv(),

@@ -71,12 +71,12 @@ export function AlertCard({ alert, compact }: { alert: Alert; compact?: boolean 
               type="button"
               data-tour="approve"
               onClick={() => approveAlert(alert.id)}
-              className="flex h-8 items-center gap-1.5 rounded-[9px] bg-ink px-3 text-[12px] font-medium text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.15),0_1px_2px_rgb(0_0_0/0.2)] transition hover:bg-[#1e2b3c]"
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-[9px] bg-ink px-3 text-[12px] font-medium whitespace-nowrap text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.15),0_1px_2px_rgb(0_0_0/0.2)] transition hover:bg-[#1e2b3c]"
             >
               <Check className="size-3.5" /> Approve
             </button>
             {!compact ? (
-              <button type="button" onClick={() => askLuna(`Why is ${alert.assetId} flagged?`)} className="flex h-8 items-center rounded-[9px] px-2.5 text-[12px] font-medium text-ink-2 ring-1 ring-line-2 transition ring-inset hover:bg-white">
+              <button type="button" onClick={() => askLuna(`Why is ${alert.assetId} flagged?`)} className="flex h-8 shrink-0 items-center rounded-[9px] px-2.5 text-[12px] font-medium whitespace-nowrap text-ink-2 ring-1 ring-line-2 transition ring-inset hover:bg-white">
                 Ask why
               </button>
             ) : null}

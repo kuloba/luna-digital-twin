@@ -120,6 +120,8 @@ export const STEPS: Step[] = [
     body: "Follow [[LET-1124]] from seeding through towers, harvest and QA to cold storage and the 14:00 Cascade Fresh truck — one ID, every touchpoint, drawn in 3D.",
     enter: () => {
       const st = twin();
+      st.setLayer("heat", null);
+      st.select("TRK-2");
       st.selectBatch("LET-1124", { trace: true });
       st.flyToZone("SITE");
     },
@@ -161,7 +163,7 @@ export function Tour() {
   return (
     <AnimatePresence>
       {tour.active && step ? (
-        <motion.div key="tour" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.2 }} className="pointer-events-auto absolute bottom-[224px] left-[calc(50%-174px)] z-40 w-[432px] -translate-x-1/2">
+        <motion.div key="tour" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.2 }} className="pointer-events-auto absolute bottom-4 left-[max(496px,calc(496px+(100%-1348px)/2))] z-40 w-[432px]">
           <div className="overflow-hidden rounded-[18px] bg-[#0f1b2a] text-white shadow-[0_24px_48px_-12px_rgb(15_27_42/0.55)]">
             <div className="flex items-center gap-2 px-4 pt-3.5">
               <LunaMark className="h-3.5 w-4" />
