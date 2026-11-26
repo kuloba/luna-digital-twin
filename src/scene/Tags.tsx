@@ -164,12 +164,22 @@ function useDeclutter(on: boolean) {
       }
       if (show !== it.shown) {
         it.shown = show;
+        // Fade in, but vanish at once: at low frame rates a fading chip would
+        // still sit on top of the one that just took its place.
+        it.el.style.transitionDuration = show ? "" : "0ms";
         it.el.style.opacity = show ? "1" : "0";
         it.el.style.pointerEvents = show ? "" : "none";
       }
       it.el.style.setProperty("--tag-dy", `${show ? it.dy : 0}px`);
     }
   });
+}
+
+/** A new label starts hidden; the next layout pass decides where (and whether) it shows. */
+function hiddenEntry(group: Group, el: HTMLElement, prio: number): Placed {
+  el.style.opacity = "0";
+  el.style.pointerEvents = "none";
+  return { group, el, prio, w: el.offsetWidth, h: el.offsetHeight, dy: 0, shown: false };
 }
 
 /**
@@ -181,7 +191,7 @@ export function useLabelSlot(key: string, prio: number) {
   const group = useRef<Group>(null);
   const setEl = useCallback(
     (b: HTMLElement | null) => {
-      if (b && group.current) registry.set(key, { group: group.current, el: b, prio, w: b.offsetWidth, h: b.offsetHeight, dy: 0, shown: true });
+      if (b && group.current) registry.set(key, hiddenEntry(group.current, b, prio));
       else if (!b) registry.delete(key);
     },
     [key, prio],
@@ -217,7 +227,7 @@ function Tag({ id }: { id: string }) {
   // button's ref callback rather than an effect.
   const setEl = useCallback(
     (b: HTMLButtonElement | null) => {
-      if (b && group.current) registry.set(id, { group: group.current, el: b, prio: prioRef.current, w: b.offsetWidth, h: b.offsetHeight, dy: 0, shown: true });
+      if (b && group.current) registry.set(id, hiddenEntry(group.current, b, prioRef.current));
       else if (!b) registry.delete(id);
     },
     [id],
