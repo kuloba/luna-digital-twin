@@ -61,12 +61,13 @@ export const STEPS: Step[] = [
   },
   {
     title: "Approve — then watch it verify itself",
-    body: "One tap applies the recommendation. Luna keeps watching until VPD is back in band, then logs the verification in the feed. Detect → explain → act → verify, in under a minute.",
+    body: "One tap applies the recommendation. Watch the heat map cool as Luna tracks VPD back into band, then marks the fix verified and logs it. Detect → explain → act → verify, in under a minute.",
     enter: () => {
       const st = twin();
       const a = vpdAlert();
       if (a) st.approveAlert(a.id);
-      st.setRightPanel("brief");
+      // Stay on V2: its card goes from verifying to verified beside the room's live VPD.
+      st.select("V2");
     },
   },
   {
@@ -95,6 +96,7 @@ export const STEPS: Step[] = [
     enter: () => {
       const st = twin();
       st.setCvLens("ripeness");
+      st.select(undefined); // drop the single-plant marker from the last step
       st.flyToZone("GH");
       askLuna("Where should the picking crews go tomorrow?");
     },
@@ -115,8 +117,8 @@ export const STEPS: Step[] = [
     enter: () => {
       const st = twin();
       st.setCvLens("pests");
-      st.select("G2");
-      st.flyToZone("GH");
+      // Frame G2 itself: from the whole-glasshouse view the hotspots read as noise.
+      st.select("G2", { fly: true });
     },
   },
   {
@@ -188,14 +190,15 @@ export function Tour() {
                   <X className="size-3.5" />
                 </button>
               </div>
-              <AnimatePresence mode="wait">
-                <motion.div key={tour.step} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.16 }} className="px-4 pt-2 pb-3">
-                  <h3 className="font-serif text-[23px] leading-[1.1] tracking-[-0.005em]">{step.title}</h3>
-                  <p className="mt-2 text-[12.5px] leading-[1.6] text-white/75 [&_button]:bg-white/10 [&_button]:text-white [&_button]:ring-white/15 [&_strong]:text-white">
-                    <RichText text={step.body} chipSize="sm" />
-                  </p>
-                </motion.div>
-              </AnimatePresence>
+              {/* Remount per step and fade in. No exit animation on purpose: with a
+                  wait-for-exit transition, two quick Next presses left the card stuck
+                  on an earlier step's text for the rest of the demo. */}
+              <motion.div key={tour.step} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18 }} className="px-4 pt-2 pb-3">
+                <h3 className="font-serif text-[23px] leading-[1.1] tracking-[-0.005em]">{step.title}</h3>
+                <p className="mt-2 text-[12.5px] leading-[1.6] text-white/75 [&_button]:bg-white/10 [&_button]:text-white [&_button]:ring-white/15 [&_strong]:text-white">
+                  <RichText text={step.body} chipSize="sm" />
+                </p>
+              </motion.div>
               <div className="flex items-center gap-3 border-t border-white/10 px-4 py-2.5">
                 <div className="flex gap-1">
                   {STEPS.map((_, i) => (

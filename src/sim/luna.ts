@@ -16,13 +16,33 @@ import { clockNow } from "@/lib/clock";
 const open = (s: SimState) => s.alerts.filter((a) => a.status === "OPEN");
 const sevRank = (a: Alert) => (a.severity === "CRITICAL" ? 0 : a.severity === "WARNING" ? 1 : 2);
 
+/**
+ * Whose desk an alert lands on. Growers own the crop, climate and
+ * fertigation; the facility manager owns the fleet, QA and dispatch. The same
+ * alert is "needs you" for its owner and a one-line heads-up for everyone else.
+ */
+const DESK: Record<Role, RegExp> = { GROWER: /Grower|Fertigation/, MANAGER: /Facility|QA/ };
+export const onDesk = (a: Alert, role: Role) => DESK[role].test(a.recommendation.owner);
+/** A fix verified in the last 40 s stays on screen, so the green check lands where people are looking. */
+export const recentlyVerified = (a: Alert, now: number) => a.status === "RESOLVED" && a.resolvedAt !== undefined && now - a.resolvedAt < 40_000;
+
+/** "With the team: [[AMR-08]] battery 19 % while transporting — Dev Okafor has it." */
+function teamLine(team: Alert[]) {
+  const t = team[0];
+  const title = t.title.split(" — ")[0].replace(t.assetId, `[[${t.assetId}]]`);
+  const more = team.length > 1 ? `, plus ${team.length - 1} more with the team` : "";
+  return `With the team: ${title} — ${t.recommendation.owner.split(" · ")[0]} has it${more}.`;
+}
+
 export function greeting(now = new Date(clockNow())) {
   const h = now.getHours();
   return h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 }
 
 export function shiftBrief(s: SimState, role: Role) {
-  const alerts = open(s).sort((a, b) => sevRank(a) - sevRank(b));
+  const all = open(s).sort((a, b) => sevRank(a) - sevRank(b));
+  const alerts = all.filter((a) => onDesk(a, role));
+  const team = all.filter((a) => !onDesk(a, role));
   const k = s.kpis;
   const pace = k.yieldTodayKg / k.yieldPlanKg;
   const g1 = summarise(Object.values(s.cv.G1.plants), "TOMATO", s.cv.G1.imagesToday);
@@ -48,7 +68,8 @@ export function shiftBrief(s: SimState, role: Role) {
   }
   const tankB = s.assets["TANK-B"];
   lines.push(`Stock tank B is at ${formatNumber(tankB.metrics.level!.value)} % — about **${tankB.detail?.daysLeft} days** left. Order today to keep a 2-day buffer.`);
-  return { headline, lines, alerts };
+  if (team.length) lines.push(teamLine(team));
+  return { headline, lines, alerts, team };
 }
 
 const lower = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
@@ -153,9 +174,12 @@ export function reply(prompt: string, s: SimState, role: Role): { text: string; 
     }
   }
   if (p.includes("attention") || p.includes("needs me") || p.includes("need me") || p.includes("risk") || p.includes("alert")) {
-    if (!alerts.length) return { text: "Nothing is out of band right now. The last fix I verified is in the feed. I'll ping you the moment something drifts." };
-    const lines = alerts.slice(0, 4).map((a) => `• **${a.severity === "CRITICAL" ? "Critical" : "Watch"}** · [[${a.assetId}]] — ${a.title.split(" — ")[0]}. Suggested: ${lower(a.recommendation.title)}.`);
-    return { text: `${alerts.length} open item${alerts.length > 1 ? "s" : ""}, most urgent first:\n\n${lines.join("\n")}\n\nI've attached the top one — approve it and I'll verify the recovery.`, alertId: alerts[0].id };
+    const mine = alerts.filter((a) => onDesk(a, role));
+    const team = alerts.filter((a) => !onDesk(a, role));
+    const heads = team.length ? `\n\n${teamLine(team)}` : "";
+    if (!mine.length) return { text: `Nothing on your desk is out of band right now. The last fix I verified is in the feed, and I'll ping you the moment something drifts.${heads}` };
+    const lines = mine.slice(0, 4).map((a) => `• **${a.severity === "CRITICAL" ? "Critical" : "Watch"}** · [[${a.assetId}]] — ${a.title.split(" — ")[0]}. Suggested: ${lower(a.recommendation.title)}.`);
+    return { text: `${mine.length} open item${mine.length > 1 ? "s" : ""} for you, most urgent first:\n\n${lines.join("\n")}\n\nI've attached the top one — approve it and I'll verify the recovery.${heads}`, alertId: mine[0].id };
   }
   if (p.includes("bandwidth") || p.includes("data") || p.includes("photo") || p.includes("image")) {
     const images = s.cv.G1.imagesToday + s.cv.G2.imagesToday + s.cv.G3.imagesToday;

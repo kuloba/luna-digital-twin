@@ -130,9 +130,16 @@ function RowFixture({ id, x, z0, z1 }: { id: string; x: number; z0: number; z1: 
 
 const TRUSS_MAX = 9;
 
+const FIELD = new Color("#dfe5dc");
+const tint = new Color();
+
 function lensLeafColor(lens: CvLens, p: Plant, base: string) {
   if (lens === "pests" && p.seen.pest && p.seen.pestLevel > 0.08) {
-    return col.set(p.seen.pest === "Botrytis" ? "#8a7d5a" : p.seen.pest === "Powdery mildew" ? "#b8c4a8" : "#a9a44a").lerp(col.clone().set(base), 1 - Math.min(1, p.seen.pestLevel * 1.4));
+    // Start from the washed-out field and push toward the legend colour, so a
+    // flagged plant always reads warmer than its neighbours (blending back to
+    // the base leaf green made light patches look healthier than the rest).
+    tint.set(p.seen.pest === "Botrytis" ? C.red : C.amber);
+    return col.set(base).lerp(FIELD, 0.55).lerp(tint, Math.min(1, 0.45 + p.seen.pestLevel));
   }
   if (lens === "growth") {
     // Head height vs. 3.15 m target: blue = behind, green = on, amber = stretched.
@@ -141,7 +148,7 @@ function lensLeafColor(lens: CvLens, p: Plant, base: string) {
     if (d > 0.1) return col.set("#d9a43c");
     return col.set("#3f9a56");
   }
-  if (lens === "yield" || lens === "pests") return col.set(base).lerp(col.clone().set("#dfe5dc"), 0.55);
+  if (lens === "yield" || lens === "pests") return col.set(base).lerp(FIELD, 0.55);
   return col.set(base);
 }
 
@@ -419,7 +426,7 @@ function PestBeacons({ comp }: { comp: CompartmentCv }) {
             <meshBasicMaterial color={s.kind === "Botrytis" ? C.red : C.amber} transparent opacity={0.75} toneMapped={false} />
           </mesh>
           <mesh position={[0, 3.9, 0]}>
-            <octahedronGeometry args={[0.14 + s.level * 0.1, 0]} />
+            <octahedronGeometry args={[0.2 + s.level * 0.16, 0]} />
             <meshBasicMaterial color={s.kind === "Botrytis" ? C.red : C.amber} toneMapped={false} />
           </mesh>
         </group>

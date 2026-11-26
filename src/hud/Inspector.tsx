@@ -1,9 +1,10 @@
 import { BatteryCharging, Crosshair, MessageCircle, MousePointerClick, Route, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { clockNow } from "@/lib/clock";
 import { cn, formatDayTime, formatEta, formatKg, formatNumber } from "@/lib/format";
 import { cropColor, healthLabel, liquidColor, statusLabel } from "@/lib/theme";
 import { TANKS, ZONE_BY_ID } from "@/sim/layout";
-import { assetSummary } from "@/sim/luna";
+import { assetSummary, recentlyVerified } from "@/sim/luna";
 import { inBand } from "@/sim/metrics";
 import { twin, useTwin } from "@/sim/store";
 import type { Asset, AssetKind, Batch, Metric, MetricKey, SimState } from "@/sim/types";
@@ -78,7 +79,8 @@ function AssetInspector({ id }: { id: string }) {
   const sim = useTwin((s) => s.sim);
   const a = sim.assets[id];
   if (!a) return <EmptyInspector />;
-  const alert = sim.alerts.find((x) => x.assetId === id && x.status !== "RESOLVED");
+  const now = clockNow();
+  const alert = sim.alerts.find((x) => x.assetId === id && x.status !== "RESOLVED") ?? sim.alerts.find((x) => x.assetId === id && recentlyVerified(x, now));
   const zone = ZONE_BY_ID[a.zoneId];
   return (
     <div className="scroll-thin flex-1 overflow-y-auto">

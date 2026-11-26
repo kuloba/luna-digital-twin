@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn, formatAgo, formatNumber } from "@/lib/format";
 import { liquidColor } from "@/lib/theme";
 import { TANKS } from "@/sim/layout";
-import { greeting, PRESETS, shiftBrief } from "@/sim/luna";
+import { greeting, onDesk, PRESETS, recentlyVerified, shiftBrief } from "@/sim/luna";
 import { deviation, inBand } from "@/sim/metrics";
 import { twin, useTwin } from "@/sim/store";
 import type { Alert, FeedEvent, Metric } from "@/sim/types";
@@ -19,7 +19,7 @@ import { clockNow } from "@/lib/clock";
 export function RightPanel() {
   const panel = useTwin((s) => s.rightPanel);
   const setPanel = useTwin((s) => s.setRightPanel);
-  const openAlerts = useTwin((s) => s.sim.alerts.filter((a) => a.status === "OPEN").length);
+  const openAlerts = useTwin((s) => s.sim.alerts.filter((a) => a.status === "OPEN" && onDesk(a, s.role)).length);
   const selectedId = useTwin((s) => s.selectedId);
   return (
     <aside data-tour="right-panel" className="pointer-events-auto absolute top-[88px] right-4 bottom-4 z-20 flex w-[360px] flex-col 2xl:w-[392px] overflow-hidden panel">
@@ -63,7 +63,8 @@ function Brief() {
   const sim = useTwin((s) => s.sim);
   const brief = useMemo(() => shiftBrief(sim, role), [sim, role]);
   const now = clockNow();
-  const cards = sim.alerts.filter((a) => a.status !== "RESOLVED" || (a.resolvedAt && now - a.resolvedAt < 40_000)).sort((a, b) => rank(a) - rank(b));
+  // Cards are the alerts on this role's desk; the brief names the rest in one line.
+  const cards = sim.alerts.filter((a) => onDesk(a, role) && (a.status !== "RESOLVED" || recentlyVerified(a, now))).sort((a, b) => rank(a) - rank(b));
   const first = operator.split(" ")[0];
   return (
     <div className="scroll-thin flex-1 overflow-y-auto px-4 pt-4 pb-6">
@@ -245,10 +246,19 @@ function AskLuna() {
   const alerts = useTwin((s) => s.sim.alerts);
   const [draft, setDraft] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
+  const question = useRef<HTMLDivElement>(null);
   const last = chat[chat.length - 1];
+  const lastQuestionId = [...chat].reverse().find((m) => m.role === "user")?.id;
+  // Follow the answer as it reveals, but never scroll the question out of
+  // view: a long answer stays pinned at its question, so the "why" is read first.
   useEffect(() => {
-    scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
-  }, [chat.length, last?.shown]);
+    const sc = scroller.current;
+    if (!sc) return;
+    const bottom = sc.scrollHeight - sc.clientHeight;
+    const q = question.current;
+    const top = q ? q.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 12 : bottom;
+    sc.scrollTo({ top: Math.max(0, Math.min(bottom, top)), behavior: "smooth" });
+  }, [chat.length, last?.shown, last?.text]);
   const send = (text: string) => {
     const t = text.trim();
     if (!t) return;
@@ -278,7 +288,7 @@ function AskLuna() {
           <div className="flex flex-col gap-3.5">
             {chat.map((m) =>
               m.role === "user" ? (
-                <div key={m.id} className="ml-10 self-end rounded-[14px] rounded-br-[5px] bg-ink px-3 py-2 text-[12.5px] leading-[1.5] text-white">
+                <div key={m.id} ref={m.id === lastQuestionId ? question : undefined} className="ml-10 self-end rounded-[14px] rounded-br-[5px] bg-ink px-3 py-2 text-[12.5px] leading-[1.5] text-white">
                   {m.text}
                 </div>
               ) : (
