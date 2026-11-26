@@ -254,6 +254,8 @@ function HeatPlane({ region, layer }: { region: HeatRegion; layer: Exclude<HeatL
     t.colorSpace = SRGBColorSpace;
     return t;
   }, [canvas]);
+  // Heat planes mount and unmount with the H key; free their GPU textures.
+  useEffect(() => () => tex.dispose(), [tex]);
   const mat = useRef<MeshBasicMaterial>(null);
 
   useEffect(() => {
