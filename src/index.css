@@ -1,0 +1,229 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource/geist-mono/400.css";
+@import "@fontsource/geist-mono/500.css";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+
+  --color-canvas: #eef1f4;
+  --color-ink: #0f1b2a;
+  --color-ink-2: #334155;
+  --color-muted: #64748b;
+  --color-faint: #94a3b8;
+  --color-line: #e3e8ee;
+  --color-line-2: #d5dde5;
+  --color-panel: #ffffff;
+  --color-panel-2: #f6f8fa;
+
+  --color-ok: #2f9e5b;
+  --color-ok-soft: #e7f5ec;
+  --color-warn: #d98a0b;
+  --color-warn-soft: #fdf3e1;
+  --color-crit: #dc4a3d;
+  --color-crit-soft: #fdecea;
+  --color-info: #3f7fd6;
+  --color-info-soft: #e8f0fb;
+  --color-luna: #fcb858;
+  --color-luna-ink: #9a5b05;
+  --color-luna-soft: #fff4e3;
+  --color-slate-blue: #4f6d8f;
+
+  --radius-panel: 16px;
+  --radius-control: 10px;
+  --shadow-panel: 0 0 0 1px rgb(15 27 42 / 0.06), 0 1px 2px rgb(15 27 42 / 0.04), 0 8px 24px -6px rgb(15 27 42 / 0.1);
+  --shadow-control: inset 0 1px 0 0 rgb(255 255 255 / 1), 0 0 0 1px rgb(15 27 42 / 0.08), 0 1px 2px -1px rgb(15 27 42 / 0.06), 0 2px 4px 0 rgb(15 27 42 / 0.04);
+
+  --animate-pulse-soft: pulse-soft 2.2s ease-in-out infinite;
+  --animate-rise: rise 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ping-ring {
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Floating HUD panel — white sheet with a ring-and-drop shadow (no border). */
+.panel {
+  background: rgb(255 255 255 / 0.94);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+}
+
+.control {
+  background: #fff;
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-control);
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #d5dde5 transparent;
+}
+
+/* ------------------------------------------------------------------ */
+/* Spatial tags                                                       */
+/* ------------------------------------------------------------------ */
+
+.spatial-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.96);
+  box-shadow: 0 0 0 1px rgb(15 27 42 / 0.1), 0 2px 6px -1px rgb(15 27 42 / 0.16);
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-ink-2);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.spatial-tag::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 1px;
+  height: 10px;
+  background: rgb(15 27 42 / 0.28);
+}
+
+.spatial-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgb(15 27 42 / 0.16), 0 6px 14px -2px rgb(15 27 42 / 0.22);
+}
+
+.spatial-tag__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.spatial-tag__dot--live {
+  animation: var(--animate-pulse-soft);
+}
+
+.spatial-tag__id {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 10.5px;
+  color: var(--color-ink);
+  letter-spacing: -0.01em;
+}
+
+.spatial-tag__activity {
+  color: var(--color-muted);
+}
+
+.spatial-tag--warning {
+  background: #fffaf0;
+  box-shadow: 0 0 0 1px rgb(217 138 11 / 0.45), 0 2px 8px -1px rgb(217 138 11 / 0.3);
+}
+.spatial-tag--warning .spatial-tag__activity {
+  color: #9a5b05;
+}
+
+.spatial-tag--critical {
+  background: #fff5f4;
+  box-shadow: 0 0 0 1px rgb(220 74 61 / 0.55), 0 2px 10px -1px rgb(220 74 61 / 0.35);
+}
+.spatial-tag--critical .spatial-tag__activity {
+  color: #b42318;
+}
+
+.spatial-tag--resolving {
+  background: #f4f8fe;
+  box-shadow: 0 0 0 1px rgb(63 127 214 / 0.45), 0 2px 8px -1px rgb(63 127 214 / 0.25);
+}
+.spatial-tag--resolving .spatial-tag__activity {
+  color: #2459a6;
+}
+
+.spatial-tag--selected {
+  box-shadow: 0 0 0 2px var(--color-luna), 0 6px 16px -2px rgb(15 27 42 / 0.25);
+}
+
+@keyframes slide {
+  0% {
+    left: -35%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.typing-dot {
+  animation: blink 1.2s infinite both;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
