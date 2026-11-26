@@ -26,20 +26,12 @@ export function BatchTracker() {
   const color = cropColor[b.cropType];
   return (
     <div data-tour="batch" className="pointer-events-auto absolute bottom-4 left-4 z-20 flex h-[196px] w-[420px] flex-col 2xl:w-[468px] px-4 pt-3 pb-3 panel">
+      {/* Two header rows so the crop name and the forecast read in full on 1440–1512 px screens. */}
       <div className="flex items-center gap-2.5">
         <BatchPicker current={batchId} />
-        <div className="min-w-0 flex-1 leading-tight">
-          <div className="truncate text-[12.5px] font-semibold text-ink">
-            {b.cropName} <span className="font-normal text-muted">· {b.variety}</span>
-          </div>
-          <div className="truncate text-[11px] text-muted">
-            {formatNumber(b.cropType === "TOMATO" || b.cropType === "CUCUMBER" ? b.plants : b.trays)} {b.cropType === "TOMATO" || b.cropType === "CUCUMBER" ? "plants" : "trays"} · forecast {formatKg(b.forecastKg)} · Grade A {formatNumber(b.gradeA * 100, 1)}%
-          </div>
+        <div data-batch-name className="min-w-0 flex-1 truncate text-[12.5px] leading-tight font-semibold text-ink">
+          {b.cropName} <span className="font-normal text-muted">· {b.variety}</span>
         </div>
-        <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-medium" style={{ color: healthColor[b.health] }}>
-          <span className="size-1.5 rounded-full" style={{ background: healthColor[b.health] }} />
-          {healthLabel[b.health]}
-        </span>
         <button
           type="button"
           onClick={() => setLayer("trace", !trace)}
@@ -48,6 +40,15 @@ export function BatchTracker() {
         >
           <Route className="size-3.5" /> Trace
         </button>
+      </div>
+      <div className="mt-1.5 flex items-center gap-2.5 text-[11px] leading-tight text-muted">
+        <span data-batch-meta className="min-w-0 flex-1 truncate">
+          {formatNumber(b.cropType === "TOMATO" || b.cropType === "CUCUMBER" ? b.plants : b.trays)} {b.cropType === "TOMATO" || b.cropType === "CUCUMBER" ? "plants" : "trays"} · forecast {formatKg(b.forecastKg)} · Grade A {formatNumber(b.gradeA * 100, 1)}%
+        </span>
+        <span className="flex shrink-0 items-center gap-1.5 font-medium" style={{ color: healthColor[b.health] }}>
+          <span className="size-1.5 rounded-full" style={{ background: healthColor[b.health] }} />
+          {healthLabel[b.health]}
+        </span>
       </div>
 
       <Stepper b={b} accent={color.accent ?? color.leaf} />
