@@ -42,7 +42,7 @@ export function ZoneTable() {
   }, [role, focus]);
   const sim = useTwin((s) => s.sim);
   // The guided demo's card takes this slot; the table comes back when it ends.
-  const touring = useTwin((s) => s.tour.active);
+  const touring = useTwin((s) => s.tour.active || s.welcomeOpen);
   const zoneLabel = focus === "SITE" ? "Whole campus" : ZONE_BY_ID[focus].short;
   return (
     <div data-tour="table" className={cn("pointer-events-auto absolute right-[388px] bottom-4 left-[448px] z-20 hidden h-[196px] min-w-0 flex-col overflow-hidden panel 2xl:right-[420px] 2xl:left-[496px]", !touring && "min-[1200px]:flex")}>

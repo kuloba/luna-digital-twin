@@ -1,5 +1,5 @@
 import { CameraControls } from "@react-three/drei";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useRef } from "react";
 import { MathUtils, Vector3 } from "three";
 import { hudInsets } from "@/lib/hud";
@@ -32,7 +32,6 @@ export function Scene() {
     >
       <Lights />
       <Rig />
-      <Probe />
       <Suspense fallback={null}>
         <Static>
           <Facility />
@@ -54,6 +53,7 @@ export function Scene() {
         <AlertBeacons />
         <SelectionMarker />
         <SpatialTags />
+        <Probe />
       </Suspense>
     </Canvas>
   );
@@ -136,6 +136,11 @@ function Rig() {
 /** Exposes the renderer for scripted performance checks (draw calls, triangles). */
 function Probe() {
   const gl = useThree((s) => s.gl);
+  // Tell the HUD once a full scene has been drawn, so the loader can go.
+  const frames = useRef(0);
+  useFrame(() => {
+    if (frames.current++ === 2) useTwin.setState({ sceneReady: true });
+  });
   const scene = useThree((s) => s.scene);
   useEffect(() => {
     Object.assign(window as object, { __twinGl: gl, __twinScene: scene });

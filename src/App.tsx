@@ -7,6 +7,7 @@ import { Toasts } from "@/hud/Toasts";
 import { Legends, Toolbar } from "@/hud/Toolbar";
 import { TopBar } from "@/hud/TopBar";
 import { Tour } from "@/hud/Tour";
+import { SceneLoader } from "@/hud/SceneLoader";
 import { SmallScreen, useSmallScreen } from "@/hud/SmallScreen";
 import { Welcome } from "@/hud/Welcome";
 import { ZoneTable } from "@/hud/ZoneTable";
@@ -33,6 +34,7 @@ export function App() {
         <Scene />
       </div>
       <div className="pointer-events-none absolute inset-0 z-10">
+        <SceneLoader />
         <TopBar />
         <KpiStrip />
         <Toolbar />

@@ -59,6 +59,10 @@ export function Welcome() {
     }
   }, [selectedId, focus]);
 
+  useEffect(() => {
+    useTwin.setState({ welcomeOpen: open && !tourActive });
+  }, [open, tourActive]);
+
   return (
     <AnimatePresence>
       {open && !tourActive ? (

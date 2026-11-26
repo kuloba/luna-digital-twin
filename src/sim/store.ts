@@ -52,6 +52,10 @@ interface UiState {
   chat: ChatMessage[];
   tour: { active: boolean; step: number };
   operator: string;
+  /** The 3D scene has drawn its first full frame. */
+  sceneReady: boolean;
+  /** The first-visit card is showing. */
+  welcomeOpen: boolean;
 
   tick(): void;
   select(id?: string, opts?: { fly?: boolean }): void;
@@ -103,6 +107,8 @@ export const useTwin = create<UiState>((set, get) => ({
   chat: [],
   tour: { active: false, step: 0 },
   operator: OPERATORS.GROWER,
+  sceneReady: false,
+  welcomeOpen: false,
 
   tick() {
     if (!get().running) return;
