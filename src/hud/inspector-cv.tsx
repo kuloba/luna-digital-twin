@@ -5,6 +5,7 @@ import { CUCUMBER_STAGES, PLANTS_PER_ROW, RIPENESS_STAGES, rowYield, stageIndex,
 import { COMPARTMENTS } from "@/sim/layout";
 import { twin, useTwin } from "@/sim/store";
 import type { CompartmentCv, Plant, SimState } from "@/sim/types";
+import { CompartmentForecast } from "./Forecast";
 import { EntityChip } from "./RichText";
 import { Num, Section } from "./ui";
 import { clockNow } from "@/lib/clock";
@@ -119,6 +120,10 @@ export function CompartmentVision({ compId }: { compId: string }) {
             <span className="font-medium">{lens === "pests" ? "Showing" : "Show"} →</span>
           </button>
         ) : null}
+      </Section>
+
+      <Section title="Harvest forecast · 14 days" action={<span className="text-[10.5px] text-faint">from camera ripeness</span>}>
+        <CompartmentForecast compId={compId} />
       </Section>
 
       <Section title="Rows · ready kg/m² next 7 d" action={<span className="text-[10.5px] text-faint">click a row</span>}>

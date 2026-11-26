@@ -6,6 +6,7 @@ import { TANKS, ZONE_BY_ID } from "@/sim/layout";
 import { deviation, inBand } from "@/sim/metrics";
 import { twin, useTwin } from "@/sim/store";
 import type { Asset, Metric, SimState, ZoneId } from "@/sim/types";
+import { ForecastPanel } from "./Forecast";
 import { Battery } from "./gauges";
 import { Pill, Progress, type Tone } from "./ui";
 
@@ -15,9 +16,10 @@ import { Pill, Progress, type Tone } from "./ui";
  * rows fly the camera to the asset.
  */
 
-type TabKey = "towers" | "rows" | "climate" | "robots" | "quality" | "dispatch" | "tanks";
+type TabKey = "towers" | "rows" | "forecast" | "climate" | "robots" | "quality" | "dispatch" | "tanks";
 
 const TABS: { key: TabKey; label: string }[] = [
+  { key: "forecast", label: "Harvest forecast" },
   { key: "rows", label: "Crop rows" },
   { key: "towers", label: "Towers" },
   { key: "climate", label: "Climate" },
@@ -27,7 +29,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "tanks", label: "Tanks" },
 ];
 
-const TAB_FOR_FOCUS: Partial<Record<ZoneId | "SITE", TabKey>> = { V1: "towers", V2: "towers", GH: "rows", HARV: "quality", QA: "quality", PACK: "quality", COLD: "dispatch", UTIL: "tanks", PROP: "climate" };
+const TAB_FOR_FOCUS: Partial<Record<ZoneId | "SITE", TabKey>> = { V1: "towers", V2: "towers", GH: "forecast", HARV: "quality", QA: "quality", PACK: "quality", COLD: "dispatch", UTIL: "tanks", PROP: "climate" };
 
 export function ZoneTable() {
   const focus = useTwin((s) => s.focus);
@@ -69,6 +71,8 @@ function TableBody({ tab, sim, focus }: { tab: TabKey; sim: SimState; focus: Zon
       return <TowersTable sim={sim} focus={focus} />;
     case "rows":
       return <RowsTable sim={sim} />;
+    case "forecast":
+      return <ForecastPanel />;
     case "climate":
       return <ClimateTable sim={sim} />;
     case "robots":

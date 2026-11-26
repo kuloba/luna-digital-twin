@@ -246,3 +246,47 @@ export function rowYield(comp: CompartmentCv, row: RowCv) {
   // Undo the plant scale (9.2) and express as kg/m² over the next 7 days.
   return (s.readyKg7d / 9.2 / area) * 1.25;
 }
+
+/* ------------------------------------------------------------------ */
+/* Harvest forecast                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The planning model behind the 14-day forecast. A truss is picked at
+ * ripeness 4.4 (red) and colours at a steady rate, so days-to-pick is just
+ * distance to 4.4 over the rate. The rates are set so the first seven days
+ * add up to the "ready in 7 days" figure everywhere else in the twin.
+ */
+export const PICK_RIPENESS = 4.4;
+export const RIPEN_PER_DAY: Record<CompartmentCv["crop"], number> = { TOMATO: (PICK_RIPENESS - 3.4) / 7, CUCUMBER: (PICK_RIPENESS - 3.6) / 7 };
+export const FORECAST_DAYS = 14;
+
+export interface HarvestForecast {
+  /** Fruit already at pick ripeness: the backlog the next pick clears. */
+  readyNowKg: number;
+  /** kg reaching pick ripeness on day 1…14 from today. */
+  days: number[];
+}
+
+/**
+ * Built only from what the cameras saw (`seen`), never the simulated
+ * ground truth, so it is exactly as good as the last pass.
+ */
+export function harvestForecast(plants: Plant[], crop: CompartmentCv["crop"], horizon = FORECAST_DAYS): HarvestForecast {
+  const days = new Array<number>(horizon).fill(0);
+  let now = 0;
+  const kg = 9.2 * FRUIT_KG[crop];
+  const rate = RIPEN_PER_DAY[crop];
+  for (const p of plants) {
+    for (const t of p.seen.trusses) {
+      const d = (PICK_RIPENESS - t.ripeness) / rate;
+      if (d <= 0) now += t.fruits * kg;
+      else if (d <= horizon) days[Math.ceil(d) - 1] += t.fruits * kg;
+    }
+  }
+  return { readyNowKg: now, days };
+}
+
+export function compartmentForecast(comp: CompartmentCv) {
+  return harvestForecast(Object.values(comp.plants), comp.crop);
+}

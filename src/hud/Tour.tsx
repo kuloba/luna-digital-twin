@@ -91,7 +91,7 @@ export const STEPS: Step[] = [
   },
   {
     title: "From pixels to a pick plan",
-    body: "Because the twin knows the colour of every truss, Luna turns this morning's scans into tomorrow's pick list and crew hours — and holds pickers out of the pest hotspots until a scout clears them.",
+    body: "Because the twin knows the colour of every truss, Luna turns this morning's scans into tomorrow's pick list, a 14-day forecast and the crew hours to match — and holds pickers out of the pest hotspots until a scout clears them.",
     enter: () => {
       const st = twin();
       st.setCvLens("ripeness");

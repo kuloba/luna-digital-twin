@@ -1,5 +1,5 @@
 import { formatKg, formatNumber } from "@/lib/format";
-import { FRUIT_KG, stageIndex, summarise } from "./cv";
+import { compartmentForecast, FRUIT_KG, stageIndex, summarise } from "./cv";
 import { inBand } from "./metrics";
 import type { Role } from "./store";
 import type { Alert, Asset, SimState } from "./types";
@@ -172,7 +172,7 @@ export function reply(prompt: string, s: SimState, role: Role): { text: string; 
       return `• [[${id}]] — **${formatKg(sum.readyKg7d)}** ready in 7 days · ${formatNumber(red)} fruit at light-red or red · ${formatNumber(sum.trusses / Math.max(1, sum.plants), 1)} trusses/plant`;
     });
     const g3 = summarise(Object.values(s.cv.G3.plants), "CUCUMBER");
-    return { text: `From this morning's camera passes:\n\n${out.join("\n")}\n• [[G3]] cucumbers — **${formatKg(g3.readyKg7d)}** at pick size\n\nG1 is on plan. G2 is light-limited (DLI 13.9 vs 15) and colouring ~2 days slower — I'd hold the 24 h temperature at 19.2 °C rather than push it. Switch the glasshouse to the **Yield** lens to see it row by row.` };
+    return { text: `From this morning's camera passes:\n\n${out.join("\n")}\n• [[G3]] cucumbers — **${formatKg(g3.readyKg7d)}** at pick size\n\n${forecastLine(s)}\n\nG1 is on plan. G2 is light-limited (DLI 13.9 vs 15) and colouring ~2 days slower — I'd hold the 24 h temperature at 19.2 °C rather than push it. Switch the glasshouse to the **Yield** lens to see it row by row.` };
   }
   if (p.includes("v2") || p.includes("warm") || p.includes("vpd") || p.includes("climate")) {
     const v2 = s.assets.V2;
@@ -253,5 +253,29 @@ function pickPlan(s: SimState) {
   for (const r of [...held].sort((a, b) => a.id.localeCompare(b.id))) byPest.set(r.pest!, [...(byPest.get(r.pest!) ?? []), r.id]);
   const groups = [...byPest.entries()].map(([pest, ids]) => `the ${pest.toLowerCase()} ${ids.length > 1 ? "rows" : "row"} ${ids.map((id) => `[[${id}]]`).join(", ")}`);
   const hold = groups.length ? `\n\nHold ${groups.join(" and ")} until a scout clears them, so pickers don't carry it down the house.` : "";
-  return `Tomorrow's pick, from this morning's camera passes:\n\n${list}\n\nThat's **${formatKg(kg)}** across ${top.length} rows — about **${formatNumber(hours, 1)} picker-hours** at ${PICK_RATE} kg/h, so a crew of ${crew} clears it in ~${formatNumber(hours / crew, 1)} h.${hold}`;
+  const ahead = tomatoAhead(s);
+  return `Tomorrow's pick, from this morning's camera passes:\n\n${list}\n\nThat's **${formatKg(kg)}** across ${top.length} rows — about **${formatNumber(hours, 1)} picker-hours** at ${PICK_RATE} kg/h, so a crew of ${crew} clears it in ~${formatNumber(hours / crew, 1)} h.${hold}\n\nLooking ahead, the same scans put **${formatKg(ahead.week1)}** of tomatoes coming ready over the next 7 days and ${formatKg(ahead.week2)} the week after, peaking ${ahead.peakDay} — plan about **${formatNumber(ahead.week1 / 7 / PICK_RATE, 1)} picker-hours a day**. The 14-day forecast is in the glasshouse table.`;
+}
+
+const dayName = (i: number) => {
+  const d = new Date(clockNow() + (i + 1) * 86_400_000);
+  return `${d.toLocaleDateString("en-US", { weekday: "long" })} ${d.getDate()} ${d.toLocaleDateString("en-US", { month: "short" })}`;
+};
+
+/** Tomato kilos coming ready by day for the next two weeks, from the cameras' last pass. */
+function tomatoAhead(s: SimState) {
+  const days = new Array<number>(14).fill(0);
+  for (const id of ["G1", "G2"]) compartmentForecast(s.cv[id]).days.forEach((v, i) => (days[i] += v));
+  let peak = 0;
+  days.forEach((v, i) => {
+    if (v > days[peak]) peak = i;
+  });
+  return { days, week1: days.slice(0, 7).reduce((a, b) => a + b, 0), week2: days.slice(7).reduce((a, b) => a + b, 0), peakDay: dayName(peak), peakKg: days[peak] };
+}
+
+/** One paragraph of the 14-day forecast for the yield answer. */
+function forecastLine(s: SimState) {
+  const t = tomatoAhead(s);
+  const now = ["G1", "G2"].reduce((n, id) => n + compartmentForecast(s.cv[id]).readyNowKg, 0);
+  return `**Next 14 days**, from the same scans: ${formatKg(now)} of tomatoes are red now, then **${formatKg(t.week1)}** colours up this week and ${formatKg(t.week2)} next, peaking ${t.peakDay} at ~${formatKg(t.peakKg)}. That's ~${formatNumber(t.week1 / 7 / PICK_RATE, 1)} picker-hours a day to keep up — enough to commit volumes to buyers now instead of after a walk-through.`;
 }
