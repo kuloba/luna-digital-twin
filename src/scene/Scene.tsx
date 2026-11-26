@@ -1,7 +1,7 @@
 import { CameraControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { MathUtils, Vector3 } from "three";
+import { MathUtils, type OrthographicCamera, Vector3 } from "three";
 import { hudInsets } from "@/lib/hud";
 import { useTwin } from "@/sim/store";
 import { ColdChain, EdgeNode, GrowTowers, HarvestToPack, Propagation, RoomPlant, TankFarm } from "./Equipment";
@@ -9,6 +9,7 @@ import { Facility } from "./Facility";
 import { Glasshouse } from "./Glasshouse";
 import { AlertBeacons, EdgeFlow, FlowPaths, Heatmap, SelectionMarker, TraceRoute } from "./Overlays";
 import { Robots } from "./Robots";
+import { attachNavigation, cameraNav, FLIGHT_SMOOTH, ZOOM_STEP } from "./navigation";
 import { Static } from "./Static";
 import { SpatialTags } from "./Tags";
 
@@ -106,23 +107,46 @@ function Rig() {
   const ref = useRef<CameraControls>(null);
   const request = useTwin((s) => s.camera);
   const { size } = useThree();
+  const gl = useThree((s) => s.gl);
+  const camera = useThree((s) => s.camera);
   const first = useRef(true);
+
+  // Trackpad / wheel / Safari-gesture navigation and the HUD's zoom buttons.
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const nav = attachNavigation(c, camera as OrthographicCamera, gl.domElement);
+    cameraNav.current = nav;
+    cameraNav.zoomStep = (dir) => {
+      // Zoom about the middle of the free area between the HUD panels.
+      const r = gl.domElement.getBoundingClientRect();
+      const hud = hudInsets(r.width);
+      nav.takeOver();
+      nav.zoomBy(dir > 0 ? ZOOM_STEP : 1 / ZOOM_STEP, r.left + (hud.left + r.width - hud.right) / 2, r.top + (hud.top + r.height - hud.bottom) / 2, true);
+    };
+    return () => {
+      nav.dispose();
+      cameraNav.current = undefined;
+      cameraNav.zoomStep = undefined;
+    };
+  }, [camera, gl]);
 
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
     c.mouseButtons.left = 2; // ACTION.TRUCK (pan)
     c.mouseButtons.right = 1; // ACTION.ROTATE
-    c.mouseButtons.wheel = 16; // ACTION.ZOOM
-    c.touches.one = 64; // TOUCH_TRUCK
-    c.touches.two = 2048; // TOUCH_ZOOM_TRUCK
+    c.mouseButtons.wheel = 0; // ACTION.NONE: wheel and pinch are handled in navigation.ts
+    c.touches.one = 0; // touch pan / pinch are handled in navigation.ts
+    c.touches.two = 0;
+    c.touches.three = 0;
     c.dollyToCursor = true;
     c.minZoom = 2.5;
     c.maxZoom = 140;
     c.minPolarAngle = MathUtils.degToRad(22);
     c.maxPolarAngle = MathUtils.degToRad(72);
-    c.smoothTime = 0.45;
-    c.draggingSmoothTime = 0.12;
+    c.smoothTime = FLIGHT_SMOOTH;
+    c.draggingSmoothTime = 0.06;
   }, []);
 
   useEffect(() => {
@@ -141,6 +165,7 @@ function Rig() {
     const zoom = Math.min(availW / projW, availH / projH) * pad;
     const animate = !first.current;
     first.current = false;
+    c.smoothTime = FLIGHT_SMOOTH;
     void c.setLookAt(tx + DIR.x * DIST, ty + DIR.y * DIST, tz + DIR.z * DIST, tx, ty, tz, animate);
     void c.zoomTo(zoom, animate);
     // Shift the framed region into the free area between the HUD panels.
@@ -161,8 +186,9 @@ function Probe() {
     if (frames.current++ === 2) useTwin.setState({ sceneReady: true });
   });
   const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
   useEffect(() => {
-    Object.assign(window as object, { __twinGl: gl, __twinScene: scene });
-  }, [gl, scene]);
+    Object.assign(window as object, { __twinGl: gl, __twinScene: scene, __twinCamera: camera });
+  }, [gl, scene, camera]);
   return null;
 }

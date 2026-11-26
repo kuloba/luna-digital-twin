@@ -143,6 +143,7 @@ function KeysMenu() {
   const rows: [string, string][] = [
     ["1 – 9", "Fly to a zone"],
     ["0", "Whole campus"],
+    ["+  −", "Zoom in / out"],
     ["⌘ K  /", "Search anything"],
     ["L", "Toggle labels"],
     ["H", "Cycle heat map"],

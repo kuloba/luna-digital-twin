@@ -11,6 +11,8 @@ import { SceneLoader } from "@/hud/SceneLoader";
 import { SmallScreen, useSmallScreen } from "@/hud/SmallScreen";
 import { Welcome } from "@/hud/Welcome";
 import { ZoneTable } from "@/hud/ZoneTable";
+import { ZoomControls } from "@/hud/ZoomControls";
+import { cameraNav } from "@/scene/navigation";
 import { Scene } from "@/scene/Scene";
 import { ZONES } from "@/sim/layout";
 import { twin, useTwin, type CvLens, type HeatLayer } from "@/sim/store";
@@ -38,6 +40,7 @@ export function App() {
         <TopBar />
         <KpiStrip />
         <Toolbar />
+        <ZoomControls />
         <Legends />
         <RightPanel />
         <BatchTracker />
@@ -76,6 +79,8 @@ function useShortcuts() {
         return;
       }
       if (e.key === "0") return st.flyToZone("SITE");
+      if (e.key === "+" || e.key === "=") return cameraNav.zoomStep?.(1);
+      if (e.key === "-" || e.key === "_") return cameraNav.zoomStep?.(-1);
       const zone = ZONES.find((z) => z.hotkey === e.key);
       if (zone) return st.flyToZone(zone.id);
       switch (e.key.toLowerCase()) {
