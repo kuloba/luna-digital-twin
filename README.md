@@ -21,8 +21,9 @@ The twin opens at 10:40 on a demo clock and runs in real time from there, so the
 | --- | --- | --- |
 | **Detect → explain → act → verify** | Grow Room V2 | VPD drifts after an HVAC stage trips. The heat map shows where, Luna explains why and what is at risk, one tap applies the fix, and the twin verifies the recovery and logs it. |
 | **Crop vision without the photos** | Glasshouse G1–G3, any row | Camera rails image every plant several times a day. Inference runs on site, so the twin draws each truss from its ripeness score. Click a plant for its measured record. |
-| **Why it works on a farm's internet** | `EDGE-01` | Images stay on the edge node; only plant state syncs. By late morning the demo has taken ~55,000 images (~224 GB) and synced ~11 MB of state. |
+| **Why it works on a farm's internet** | `EDGE-01` | Images stay on the edge node; only plant state syncs. Select it to see the image streams from each camera rail end there, and the thin uplink that carries ~5 kbps of state. By late morning the demo has taken ~55,000 images (~224 GB) and synced ~11 MB. |
 | **From pixels to a pick plan** | Ask Luna, "Pick plan" | This morning's scans become tomorrow's pick list: rows ranked by fruit at light-red or red, crew-hours to clear them, and pest rows held back. |
+| **A 14-day harvest forecast** | Glasshouse table, "Harvest forecast"; any compartment | Every truss the cameras saw is projected to the day it reaches pick ripeness: kg ready per day for G1–G3, the peak day and the picker-hours it implies. Luna answers from it too. |
 | **Pest pressure on a map** | Pests lens (`V`) | Whitefly in G2 rows 3–5, early botrytis on row 8, with a recommended biological release. |
 | **Tanks and fertigation** | Fertigation yard, `TANK-B` | Live level, EC and pH for eight tanks; the mix tank cycles; Luna turns days-to-empty into a reorder. |
 | **Trace a batch to the truck** | `LET-1124` → `TRK-2` | Seeding, towers, harvest, QA and cold storage as labelled stage pins on one route. |
@@ -66,7 +67,13 @@ interface PlantCv {
 }
 ```
 
+The forecast (`harvestForecast` in `src/sim/cv.ts`) uses only `seen`: each truss's ripeness is projected to the day it reaches 4.4 (red) at a steady colouring rate, chosen so its first seven days match the "ready in 7 days" figures elsewhere.
+
 A plant record is a few hundred bytes (the inspector shows the exact payload for any plant; the bandwidth figures budget 1.15 KB with metadata). The 3D crop, the row strips, yield forecasts, ripeness bands and pest maps are all drawn from it. In the simulation each plant also has a `live` state that the cameras catch up with as the gantry sweeps, which is why rows refresh in a visible wave.
+
+### Performance
+
+The scene is ~420 draw calls a frame: grow towers are instanced, and `src/scene/Static.tsx` merges static scenery that shares a material (originals stay in the tree for picking, and anything that later moves or changes colour drops out of the batch on its own). Spatial tags are laid out each frame like map labels so they never stack or sit under a panel. The canvas keeps a device-pixel budget (full retina on laptops, less on big external displays). On a MacBook Air (M5) the guided demo holds ~60 fps in Safari's engine at native resolution, and the production build is usable about a second after the link opens.
 
 ## Project layout
 
