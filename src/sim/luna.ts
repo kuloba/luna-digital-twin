@@ -251,7 +251,7 @@ function pickPlan(s: SimState) {
   const list = top.map((r, i) => `${i + 1}. [[${r.id}]] — **${formatKg(r.kg)}** at light-red or red${r.pest ? ` · pick last, ${r.pest.toLowerCase()} nearby` : ""}`).join("\n");
   const byPest = new Map<string, string[]>();
   for (const r of [...held].sort((a, b) => a.id.localeCompare(b.id))) byPest.set(r.pest!, [...(byPest.get(r.pest!) ?? []), r.id]);
-  const groups = [...byPest.entries()].map(([pest, ids]) => `${pest.toLowerCase()} (${ids.map((id) => `[[${id}]]`).join(", ")})`);
-  const hold = groups.length ? `\n\nHold the ${groups.join(" and ")} hotspots until a scout clears them, so pickers don't carry it down the house.` : "";
+  const groups = [...byPest.entries()].map(([pest, ids]) => `the ${pest.toLowerCase()} ${ids.length > 1 ? "rows" : "row"} ${ids.map((id) => `[[${id}]]`).join(", ")}`);
+  const hold = groups.length ? `\n\nHold ${groups.join(" and ")} until a scout clears them, so pickers don't carry it down the house.` : "";
   return `Tomorrow's pick, from this morning's camera passes:\n\n${list}\n\nThat's **${formatKg(kg)}** across ${top.length} rows — about **${formatNumber(hours, 1)} picker-hours** at ${PICK_RATE} kg/h, so a crew of ${crew} clears it in ~${formatNumber(hours / crew, 1)} h.${hold}`;
 }
