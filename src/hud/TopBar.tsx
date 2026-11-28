@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronDown, Command, Play, Search } from "lucide-react";
+import { Bell, Boxes, Check, ChevronDown, ClipboardList, Command, FileBarChart, LineChart, Map as MapIcon, Menu, MessageCircle, Play, Plug, RotateCcw, Search, Settings, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { create } from "zustand";
 import { cn } from "@/lib/format";
 import { ZONES } from "@/sim/layout";
@@ -8,14 +9,138 @@ import { useTwin } from "@/sim/store";
 import { Kbd, LunaMark, Segmented } from "./ui";
 import { clockNow } from "@/lib/clock";
 
+/* Hamburger + left nav drawer. The twin is the live view; the other
+   destinations route into the panels that already exist, and the planning
+   modules are listed as part of the roadmap. */
+function NavMenu() {
+  const [open, setOpen] = useState(false);
+  const st = useTwin;
+  const openAlerts = useTwin((s) => s.sim.alerts.filter((a) => a.status === "OPEN").length);
+  const tourActive = useTwin((s) => s.tour.active);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        setOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open]);
+  const go = (fn: () => void) => () => (fn(), setOpen(false));
+  const s = () => st.getState();
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Open navigation"
+        aria-expanded={open}
+        className="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-ink transition-colors hover:bg-[#f1f4f7]"
+      >
+        <Menu className="size-[19px]" strokeWidth={1.9} />
+      </button>
+      {createPortal(
+      <AnimatePresence>
+        {open ? (
+          <>
+            <motion.div
+              key="scrim"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16 }}
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-40 bg-[#0f1a28]/20 backdrop-blur-[2px]"
+            />
+            <motion.nav
+              key="drawer"
+              initial={{ x: -24, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -24, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+              aria-label="Main"
+              className="fixed top-2 bottom-2 left-2 z-50 flex w-[288px] flex-col overflow-hidden rounded-[16px] border border-line bg-white shadow-[0_24px_64px_-12px_rgb(15_26_40/0.28)]"
+            >
+              <div className="flex h-14 items-center gap-2.5 border-b border-line px-4">
+                <LunaMark className="h-[22px] w-[27px]" />
+                <span className="text-[14px] font-semibold tracking-[0.12em] text-ink">LUNA</span>
+                <span className="ml-1 rounded-full bg-panel-2 px-1.5 py-0.5 text-[9.5px] font-medium tracking-[0.06em] text-muted uppercase ring-1 ring-line-2 ring-inset">Concept</span>
+                <button type="button" onClick={() => setOpen(false)} aria-label="Close navigation" className="ml-auto flex size-8 items-center justify-center rounded-[9px] text-muted hover:bg-[#f1f4f7] hover:text-ink">
+                  <X className="size-4" />
+                </button>
+              </div>
+              <div className="scroll-thin flex-1 overflow-y-auto p-2">
+                <NavGroup label="Operate">
+                  <NavItem icon={<MapIcon />} label="Digital twin" sub="Kent CEA Campus · live" active onClick={go(() => s().flyToZone("SITE"))} />
+                  <NavItem icon={<Boxes />} label="Batches" sub="Seeding to cold chain" onClick={go(() => s().selectBatch(s().batchId, { trace: true, fly: true }))} />
+                  <NavItem icon={<Bell />} label="Alerts" sub="Morning brief and actions" badge={openAlerts} onClick={go(() => s().setRightPanel("brief"))} />
+                  <NavItem icon={<MessageCircle />} label="Ask Luna" sub="Questions about the grow" kbd="A" onClick={go(() => s().setRightPanel("luna"))} />
+                  <NavItem icon={<Search />} label="Search" sub="Batches, rows, sensors, AMRs" kbd="/" onClick={go(() => s().setSearchOpen(true))} />
+                </NavGroup>
+                <NavGroup label="Plan and report">
+                  <NavItem icon={<LineChart />} label="Yield forecast" sub="14-day harvest outlook" soon />
+                  <NavItem icon={<FileBarChart />} label="Reports" sub="Daily, weekly and buyer QA" soon />
+                  <NavItem icon={<ClipboardList />} label="Tasks and labor" sub="Crew plans from CV scouting" soon />
+                </NavGroup>
+                <NavGroup label="Workspace">
+                  <NavItem icon={<Plug />} label="Integrations" sub="Climate, fertigation, ERP" soon />
+                  <NavItem icon={<Settings />} label="Settings" sub="Sites, users and thresholds" soon />
+                </NavGroup>
+              </div>
+              <div className="flex flex-col gap-1 border-t border-line p-2">
+                <NavItem icon={<Play className="fill-current" />} label={tourActive ? "Exit guided demo" : "Guided demo"} onClick={go(() => s().setTour({ active: !tourActive, step: 0 }))} />
+                <NavItem icon={<RotateCcw />} label="Reset demo" sub="Restart the simulation" onClick={go(() => s().reset())} />
+              </div>
+            </motion.nav>
+          </>
+        ) : null}
+      </AnimatePresence>,
+      document.body,
+      )}
+    </>
+  );
+}
+
+function NavGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="pb-2 not-first:border-t not-first:border-line not-first:pt-2">
+      <div className="px-2.5 pt-1 pb-1.5 text-[10px] font-medium tracking-[0.06em] text-faint uppercase">{label}</div>
+      <div className="flex flex-col gap-0.5">{children}</div>
+    </div>
+  );
+}
+
+function NavItem({ icon, label, sub, active, badge, kbd, soon, onClick }: { icon: React.ReactNode; label: string; sub?: string; active?: boolean; badge?: number; kbd?: string; soon?: boolean; onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={soon}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-[10px] px-2.5 py-2 text-left transition-colors",
+        soon ? "cursor-default" : "hover:bg-[#f3f6f8]",
+        active && "bg-[#f3f6f8]",
+      )}
+    >
+      <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-[8px] [&>svg]:size-[15px]", active ? "bg-ink text-white" : "bg-panel-2 text-muted ring-1 ring-line-2 ring-inset", soon && "opacity-60")}>{icon}</span>
+      <span className={cn("flex min-w-0 flex-1 flex-col", soon && "opacity-60")}>
+        <span className="text-[12.5px] font-medium text-ink">{label}</span>
+        {sub ? <span className="truncate text-[11px] text-muted">{sub}</span> : null}
+      </span>
+      {badge ? <span className="flex size-5 items-center justify-center rounded-full bg-warn-soft font-mono text-[10px] text-[#9a5b05] ring-1 ring-[#f3d9a8]">{badge}</span> : null}
+      {kbd ? <Kbd>{kbd}</Kbd> : null}
+      {soon ? <span className="text-[10px] font-medium text-faint">Soon</span> : null}
+    </button>
+  );
+}
+
 export function TopBar() {
   return (
     <>
     <header className="pointer-events-auto absolute inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur">
-      <div className="flex items-center gap-2.5 pr-1 pl-1">
-        <LunaMark className="h-[22px] w-[27px]" />
-        <span className="text-[14px] font-semibold tracking-[0.12em] text-ink">LUNA</span>
-      </div>
+      <NavMenu />
       <div className="h-7 w-px bg-line" />
       <ZoneSwitcher />
       <SearchButton />
