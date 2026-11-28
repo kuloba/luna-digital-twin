@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { Check, ChevronDown, Command, Play, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { create } from "zustand";
 import { cn } from "@/lib/format";
 import { ZONES } from "@/sim/layout";
 import { useTwin } from "@/sim/store";
@@ -9,16 +10,11 @@ import { clockNow } from "@/lib/clock";
 
 export function TopBar() {
   return (
-    <header className="pointer-events-auto absolute inset-x-4 top-4 z-30 flex h-14 items-center gap-3 rounded-2xl px-3 panel">
+    <>
+    <header className="pointer-events-auto absolute inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur">
       <div className="flex items-center gap-2.5 pr-1 pl-1">
         <LunaMark className="h-[22px] w-[27px]" />
-        <div className="flex flex-col leading-none">
-          <span className="text-[14px] font-semibold tracking-[0.12em] text-ink">LUNA</span>
-          <span className="mt-1 text-[10px] font-medium tracking-[0.06em] text-faint uppercase">Twin</span>
-        </div>
-        <span title="Independent concept demo running on a simulated facility — not a shipping product" className="ml-0.5 rounded-full bg-[#f3f6f8] px-2 py-[3px] font-mono text-[9.5px] font-medium tracking-[0.06em] text-muted uppercase ring-1 ring-line ring-inset">
-          Concept
-        </span>
+        <span className="text-[14px] font-semibold tracking-[0.12em] text-ink">LUNA</span>
       </div>
       <div className="h-7 w-px bg-line" />
       <ZoneSwitcher />
@@ -31,6 +27,65 @@ export function TopBar() {
         <Profile />
       </div>
     </header>
+    <RemoteCampus />
+    </>
+  );
+}
+
+/* Campus > zone hierarchy. Kent is the campus modelled live in this twin; the
+   other two are listed with their own zones and open as a site summary. */
+interface CampusZone { id: string; short: string; name: string }
+interface Campus { id: string; name: string; region: string; sub: string; zones: CampusZone[]; kpis?: [string, string][] }
+const CAMPUSES: Campus[] = [
+  { id: "KENT", name: "Kent CEA Campus", region: "Kent, WA", sub: "8 zones · 4.2 ha", zones: [] },
+  {
+    id: "SALINAS", name: "Salinas Glasshouse", region: "Salinas, CA", sub: "4 zones · 9.6 ha",
+    zones: [
+      { id: "S-G1", short: "Glasshouse A", name: "Tomato on-the-vine · 3.2 ha" },
+      { id: "S-G2", short: "Glasshouse B", name: "Cherry tomato · 3.0 ha" },
+      { id: "S-PK", short: "Packhouse", name: "Grading, QA and dispatch" },
+      { id: "S-FY", short: "Fertigation yard", name: "Stock tanks and mixing" },
+    ],
+    kpis: [["Yield today", "6,940 kg"], ["Grade-A", "93.1 %"], ["Scout bots", "8 active"], ["Open alerts", "1"]],
+  },
+  {
+    id: "LEAMINGTON", name: "Leamington Vertical Farm", region: "Leamington, ON", sub: "5 zones · 1.1 ha",
+    zones: [
+      { id: "L-V1", short: "Grow Hall 1", name: "Leafy greens · 48 towers" },
+      { id: "L-V2", short: "Grow Hall 2", name: "Herbs and microgreens · 40 towers" },
+      { id: "L-SD", short: "Seeding", name: "Germination and transplant" },
+      { id: "L-PK", short: "Harvest and pack", name: "Harvest, QA and pack" },
+      { id: "L-CC", short: "Cold chain", name: "Cold rooms and loading" },
+    ],
+    kpis: [["Line throughput", "198 trays/h"], ["Active towers", "84 / 88"], ["Grade-A", "96.0 %"], ["Open alerts", "0"]],
+  },
+];
+const useCampus = create<{ campus: string; zone?: string; set: (campus: string, zone?: string) => void }>((set) => ({ campus: "KENT", set: (campus, zone) => set({ campus, zone }) }));
+
+function RemoteCampus() {
+  const { campus, zone, set } = useCampus();
+  const flyToZone = useTwin((s) => s.flyToZone);
+  const c = CAMPUSES.find((x) => x.id === campus);
+  if (!c || c.id === "KENT") return null;
+  const z = c.zones.find((x) => x.id === zone);
+  return (
+    <div className="pointer-events-auto absolute inset-x-0 top-14 bottom-0 z-[29] flex items-center justify-center bg-[#eef1f4]/85 backdrop-blur-sm">
+      <div className="w-[440px] p-5 panel">
+        <span className="text-[10px] font-medium tracking-[0.06em] text-faint uppercase">{c.region}{z ? ` · ${c.name}` : ""}</span>
+        <h2 className="mt-1 text-[20px] font-semibold tracking-[-0.01em] text-ink">{z ? z.short : c.name}</h2>
+        <p className="mt-1 text-[12.5px] text-muted">{z ? z.name : c.sub}</p>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {c.kpis?.map(([k, v]) => (
+            <div key={k} className="rounded-[10px] bg-panel-2 px-3 py-2">
+              <div className="text-[11px] text-muted">{k}</div>
+              <div className="mt-0.5 font-mono text-[15px] text-ink">{v}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-[11.5px] leading-[1.5] text-muted">Site summary from this campus's edge node. Its full 3D twin isn't part of this demo, which models Kent live.</p>
+        <button type="button" onClick={() => (set("KENT"), flyToZone("SITE"))} className="mt-4 h-8 rounded-[9px] bg-ink px-3 text-[12px] font-medium text-white">Back to Kent CEA Campus</button>
+      </div>
+    </div>
   );
 }
 
@@ -47,13 +102,18 @@ function ZoneSwitcher() {
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
-  const label = focus === "SITE" ? "Kent CEA Campus" : ZONES.find((z) => z.id === focus)?.short;
+  const { campus, zone, set: setCampus } = useCampus();
+  const remote = CAMPUSES.find((c) => c.id === campus && c.id !== "KENT");
+  const remoteZone = remote?.zones.find((z) => z.id === zone);
+  const label = remote ? (remoteZone?.short ?? remote.name) : focus === "SITE" ? "Kent CEA Campus" : ZONES.find((z) => z.id === focus)?.short;
+  const kicker = remote ? (remoteZone ? remote.name : "Site") : focus === "SITE" ? "Site" : "Kent CEA Campus";
+  const goKent = (z: Parameters<typeof flyToZone>[0]) => (setCampus("KENT"), flyToZone(z), setOpen(false));
   const zoneAlerts = (id: string) => alerts.filter((a) => a.status === "OPEN" && a.zoneId === id);
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen((v) => !v)} className="flex h-9 items-center gap-2 rounded-[10px] px-2.5 text-left transition-colors hover:bg-[#f1f4f7]">
         <div className="flex flex-col leading-none">
-          <span className="text-[10px] font-medium tracking-[0.06em] text-faint uppercase">{focus === "SITE" ? "Site" : "Zone"}</span>
+          <span className="max-w-[170px] truncate text-[10px] font-medium tracking-[0.06em] text-faint uppercase">{kicker}</span>
           <span className="mt-1 block max-w-[150px] truncate text-[13px] font-medium whitespace-nowrap text-ink">{label}</span>
         </div>
         <ChevronDown className={cn("size-4 text-muted transition-transform", open && "rotate-180")} />
@@ -65,14 +125,24 @@ function ZoneSwitcher() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.14 }}
-            className="absolute top-12 left-0 w-[300px] origin-top-left p-1.5 panel"
+            className="scroll-thin absolute top-12 left-0 max-h-[calc(100vh-80px)] w-[320px] origin-top-left overflow-y-auto p-1.5 panel"
           >
-            <ZoneItem active={focus === "SITE"} label="Whole campus" hint="0" onClick={() => (flyToZone("SITE"), setOpen(false))} sub="8 zones · 4.2 ha" />
-            <div className="my-1 h-px bg-line" />
+            <CampusHeader name="Kent CEA Campus" region="Kent, WA · live twin" />
+            <ZoneItem active={!remote && focus === "SITE"} label="Whole campus" hint="0" onClick={() => goKent("SITE")} sub="8 zones · 4.2 ha" />
             {ZONES.map((z) => {
               const n = zoneAlerts(z.id).length;
-              return <ZoneItem key={z.id} active={focus === z.id} label={z.short} sub={z.name} hint={z.hotkey} alerts={n} onClick={() => (flyToZone(z.id), setOpen(false))} />;
+              return <ZoneItem key={z.id} indent active={!remote && focus === z.id} label={z.short} sub={z.name} hint={z.hotkey} alerts={n} onClick={() => goKent(z.id)} />;
             })}
+            {CAMPUSES.filter((c) => c.id !== "KENT").map((c) => (
+              <div key={c.id}>
+                <div className="my-1 h-px bg-line" />
+                <CampusHeader name={c.name} region={`${c.region} · site summary`} />
+                <ZoneItem active={campus === c.id && !zone} label="Whole campus" sub={c.sub} hint="" onClick={() => (setCampus(c.id), setOpen(false))} />
+                {c.zones.map((z) => (
+                  <ZoneItem key={z.id} indent active={campus === c.id && zone === z.id} label={z.short} sub={z.name} hint="" onClick={() => (setCampus(c.id, z.id), setOpen(false))} />
+                ))}
+              </div>
+            ))}
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -80,15 +150,24 @@ function ZoneSwitcher() {
   );
 }
 
-function ZoneItem({ label, sub, hint, active, alerts = 0, onClick }: { label: string; sub: string; hint: string; active: boolean; alerts?: number; onClick: () => void }) {
+function CampusHeader({ name, region }: { name: string; region: string }) {
   return (
-    <button type="button" onClick={onClick} className={cn("flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left hover:bg-[#f3f6f8]", active && "bg-[#f3f6f8]")}>
+    <div className="px-2.5 pt-2 pb-1">
+      <div className="text-[11.5px] font-semibold text-ink">{name}</div>
+      <div className="text-[10.5px] text-faint">{region}</div>
+    </div>
+  );
+}
+
+function ZoneItem({ label, sub, hint, active, alerts = 0, indent, onClick }: { label: string; sub: string; hint: string; active: boolean; alerts?: number; indent?: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={cn("flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-left hover:bg-[#f3f6f8]", indent && "pl-5", active && "bg-[#f3f6f8]")}>
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="text-[12.5px] font-medium text-ink">{label}</span>
         <span className="truncate text-[11px] text-muted">{sub}</span>
       </div>
       {alerts ? <span className="flex size-5 items-center justify-center rounded-full bg-warn-soft font-mono text-[10px] text-[#9a5b05] ring-1 ring-[#f3d9a8]">{alerts}</span> : null}
-      {active ? <Check className="size-3.5 text-luna-ink" /> : <Kbd>{hint}</Kbd>}
+      {active ? <Check className="size-3.5 text-luna-ink" /> : hint ? <Kbd>{hint}</Kbd> : null}
     </button>
   );
 }
