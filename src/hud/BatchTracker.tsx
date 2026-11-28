@@ -25,7 +25,7 @@ export function BatchTracker() {
   const next = b.route.find((v) => v.status === "PLANNED");
   const color = cropColor[b.cropType];
   return (
-    <div data-tour="batch" className="pointer-events-auto absolute bottom-4 left-4 z-20 flex h-[196px] w-[420px] flex-col 2xl:w-[468px] px-4 pt-3 pb-3 panel">
+    <div data-tour="batch" className="pointer-events-auto absolute bottom-[72px] left-4 z-20 flex h-[196px] w-[420px] flex-col 2xl:w-[468px] px-4 pt-3 pb-3 panel">
       {/* Two header rows so the crop name and the forecast read in full on 1440–1512 px screens. */}
       <div className="flex items-center gap-2.5">
         <BatchPicker current={batchId} />

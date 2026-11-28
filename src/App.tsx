@@ -6,6 +6,7 @@ import { RightPanel } from "@/hud/RightPanel";
 import { Toasts } from "@/hud/Toasts";
 import { Legends, Toolbar } from "@/hud/Toolbar";
 import { TopBar } from "@/hud/TopBar";
+import { TimeScrubber } from "@/hud/TimeScrubber";
 import { Tour } from "@/hud/Tour";
 import { SceneLoader } from "@/hud/SceneLoader";
 import { SmallScreen, useSmallScreen } from "@/hud/SmallScreen";
@@ -38,6 +39,7 @@ export function App() {
       <div className="pointer-events-none absolute inset-0 z-10">
         <SceneLoader />
         <TopBar />
+        <TimeScrubber />
         <KpiStrip />
         <Toolbar />
         <ZoomControls />

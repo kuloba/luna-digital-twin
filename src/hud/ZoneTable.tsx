@@ -47,7 +47,7 @@ export function ZoneTable() {
   const touring = useTwin((s) => s.tour.active || s.welcomeOpen);
   const zoneLabel = focus === "SITE" ? "Whole campus" : ZONE_BY_ID[focus].short;
   return (
-    <div data-tour="table" className={cn("pointer-events-auto absolute right-[388px] bottom-4 left-[448px] z-20 hidden h-[196px] min-w-0 flex-col overflow-hidden panel 2xl:right-[420px] 2xl:left-[496px]", !touring && "min-[1200px]:flex")}>
+    <div data-tour="table" className={cn("pointer-events-auto absolute right-[388px] bottom-[72px] left-[448px] z-20 hidden h-[196px] min-w-0 flex-col overflow-hidden panel 2xl:right-[420px] 2xl:left-[496px]", !touring && "min-[1200px]:flex")}>
       <div className="flex items-center gap-2 border-b border-line px-2 py-1.5">
         <div className="scroll-thin flex min-w-0 flex-1 gap-0.5 overflow-x-auto">
           {TABS.map((t) => (

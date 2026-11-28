@@ -36,7 +36,7 @@ export function Toolbar() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
   return (
-    <div ref={ref} data-tour="toolbar" className="pointer-events-auto absolute top-[232px] left-4 z-20 flex items-start gap-2 [@media(max-height:780px)]:top-[212px]">
+    <div ref={ref} data-tour="toolbar" className="pointer-events-auto absolute top-[216px] left-4 z-20 flex items-start gap-2 [@media(max-height:780px)]:top-[196px]">
       <div className="flex flex-col gap-0.5 p-1 panel">
         <ToolButton title="Labels (L)" active={layers.labels} onClick={() => setLayer("labels", !layers.labels)}>
           <Tag className="size-4" />

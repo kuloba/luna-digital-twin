@@ -23,7 +23,7 @@ export function KpiStrip() {
           <Kpi key="ru" icon={<Bot className="size-3.5" />} label="Robot utilisation" value={k.robotUtilisation} unit="%" digits={0} note="10 AMRs · 2 harvesters" spark={k.history.robotUtilisation} />,
         ];
   return (
-    <div className="pointer-events-auto absolute top-[88px] left-4 z-20 flex gap-2.5">
+    <div className="pointer-events-auto absolute top-[72px] left-4 z-20 flex gap-2.5">
       {cards.map((c, i) => (
         // Narrow screens keep the headline KPI and crop vision; the rest return at 1200 px.
         <div key={c.key} className={i === 0 ? "flex" : "hidden min-[1200px]:flex"}>

@@ -127,21 +127,20 @@ function ZoneSwitcher() {
             transition={{ duration: 0.14 }}
             className="scroll-thin absolute top-12 left-0 max-h-[calc(100vh-80px)] w-[320px] origin-top-left overflow-y-auto p-1.5 panel"
           >
-            <CampusHeader name="Kent CEA Campus" region="Kent, WA · live twin" />
-            <ZoneItem active={!remote && focus === "SITE"} label="Whole campus" hint="0" onClick={() => goKent("SITE")} sub="8 zones · 4.2 ha" />
-            {ZONES.map((z) => {
-              const n = zoneAlerts(z.id).length;
-              return <ZoneItem key={z.id} indent active={!remote && focus === z.id} label={z.short} sub={z.name} hint={z.hotkey} alerts={n} onClick={() => goKent(z.id)} />;
-            })}
+            <CampusGroup name="Kent CEA Campus" region="Kent, WA · live twin" defaultOpen={!remote} current={!remote}>
+              <ZoneItem indent active={!remote && focus === "SITE"} label="Whole campus" hint="0" onClick={() => goKent("SITE")} sub="9 zones · 4.2 ha" />
+              {ZONES.map((z) => {
+                const n = zoneAlerts(z.id).length;
+                return <ZoneItem key={z.id} indent active={!remote && focus === z.id} label={z.short} sub={z.name} hint={z.hotkey} alerts={n} onClick={() => goKent(z.id)} />;
+              })}
+            </CampusGroup>
             {CAMPUSES.filter((c) => c.id !== "KENT").map((c) => (
-              <div key={c.id}>
-                <div className="my-1 h-px bg-line" />
-                <CampusHeader name={c.name} region={`${c.region} · site summary`} />
-                <ZoneItem active={campus === c.id && !zone} label="Whole campus" sub={c.sub} hint="" onClick={() => (setCampus(c.id), setOpen(false))} />
+              <CampusGroup key={c.id} name={c.name} region={`${c.region} · site summary`} defaultOpen={campus === c.id} current={campus === c.id}>
+                <ZoneItem indent active={campus === c.id && !zone} label="Whole campus" sub={c.sub} hint="" onClick={() => (setCampus(c.id), setOpen(false))} />
                 {c.zones.map((z) => (
                   <ZoneItem key={z.id} indent active={campus === c.id && zone === z.id} label={z.short} sub={z.name} hint="" onClick={() => (setCampus(c.id, z.id), setOpen(false))} />
                 ))}
-              </div>
+              </CampusGroup>
             ))}
           </motion.div>
         ) : null}
@@ -150,11 +149,20 @@ function ZoneSwitcher() {
   );
 }
 
-function CampusHeader({ name, region }: { name: string; region: string }) {
+/** One campus as a collapsible group; its zones nest inside. */
+function CampusGroup({ name, region, defaultOpen, current, children }: { name: string; region: string; defaultOpen: boolean; current: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="px-2.5 pt-2 pb-1">
-      <div className="text-[11.5px] font-semibold text-ink">{name}</div>
-      <div className="text-[10.5px] text-faint">{region}</div>
+    <div className="border-b border-line last:border-b-0">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left hover:bg-[#f3f6f8]">
+        <ChevronDown className={cn("size-3.5 shrink-0 text-muted transition-transform", !open && "-rotate-90")} />
+        <div className="min-w-0 flex-1">
+          <div className="text-[12.5px] font-semibold text-ink">{name}</div>
+          <div className="truncate text-[10.5px] text-faint">{region}</div>
+        </div>
+        {current ? <span className="size-1.5 rounded-full bg-[#2563eb]" /> : null}
+      </button>
+      {open ? <div className="pb-1">{children}</div> : null}
     </div>
   );
 }

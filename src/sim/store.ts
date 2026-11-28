@@ -46,6 +46,10 @@ interface UiState {
   camera: CameraRequest;
   layers: { labels: boolean; heat: HeatLayer; flows: boolean; trace: boolean };
   cvLens: CvLens;
+  /** Time scrubber: days from now being viewed (negative = history, positive = forecast). */
+  viewDays: number;
+  /** Calendar range the scrubber spans, in days from now. */
+  viewRange: [number, number];
   plantId?: string;
   rightPanel: RightPanel;
   searchOpen: boolean;
@@ -69,6 +73,8 @@ interface UiState {
   setLayer<K extends keyof UiState["layers"]>(k: K, v: UiState["layers"][K]): void;
   setRightPanel(p: RightPanel): void;
   setCvLens(l: CvLens): void;
+  setViewDays(d: number): void;
+  setViewRange(r: [number, number]): void;
   selectPlant(plantId: string, rowId: string): void;
   setSearchOpen(v: boolean): void;
   approveAlert(alertId: string): void;
@@ -103,6 +109,8 @@ export const useTwin = create<UiState>((set, get) => ({
   camera: SITE_VIEW,
   layers: { labels: true, heat: null, flows: true, trace: false },
   cvLens: "ripeness",
+  viewDays: 0,
+  viewRange: [-14, 14],
   plantId: undefined,
   rightPanel: "brief",
   searchOpen: false,
@@ -192,6 +200,15 @@ export const useTwin = create<UiState>((set, get) => ({
 
   setCvLens(l) {
     set({ cvLens: l });
+  },
+
+  setViewDays(d) {
+    const [a, b] = get().viewRange;
+    set({ viewDays: Math.max(a, Math.min(b, d)) });
+  },
+
+  setViewRange(r) {
+    set({ viewRange: r, viewDays: Math.max(r[0], Math.min(r[1], get().viewDays)) });
   },
 
   selectPlant(plantId, rowId) {

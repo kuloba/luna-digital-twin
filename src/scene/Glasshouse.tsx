@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { CanvasTexture, Color, ExtrudeGeometry, type Group, type InstancedMesh, type Mesh, type MeshBasicMaterial, Object3D, Shape } from "three";
 import { C } from "@/lib/theme";
-import { CANOPY_HIGH, CANOPY_LOW, CUCUMBER_STAGES, RIPENESS_STAGES, rowYield } from "@/sim/cv";
+import { CANOPY_HIGH, CANOPY_LOW, CUCUMBER_STAGES, RIPEN_PER_DAY, RIPENESS_STAGES, rowYield } from "@/sim/cv";
 import { COMPARTMENTS } from "@/sim/layout";
 import { twin, useTwin, type CvLens } from "@/sim/store";
 import type { CompartmentCv, Plant } from "@/sim/types";
@@ -205,6 +205,8 @@ function Plants({ comp }: { comp: CompartmentCv }) {
       const fl = flowers.current;
       if (!f || !l || !fl) return;
       const stages = isTomato ? RIPENESS_STAGES : CUCUMBER_STAGES;
+      // Time scrubber: shift each truss along its ripening curve (history or forecast).
+      const shift = st.viewDays * RIPEN_PER_DAY[isTomato ? "TOMATO" : "CUCUMBER"];
       plants.forEach((pid, i) => {
         const p = c.plants[pid];
         const fresh = Math.max(0, 1 - (now - p.scannedAt) / 6000);
@@ -214,7 +216,8 @@ function Plants({ comp }: { comp: CompartmentCv }) {
         }
         for (let t = 0; t < TRUSS_MAX; t++) {
           const idx = i * TRUSS_MAX + t;
-          const tr = p.seen.trusses[t];
+          const seen = p.seen.trusses[t];
+          const tr = seen && shift ? { ...seen, ripeness: Math.max(0, Math.min(5.6, seen.ripeness + shift)) } : seen;
           if (!tr) {
             tmp.scale.setScalar(0.0001);
             tmp.position.set(p.x, 0, p.z);
@@ -252,7 +255,7 @@ function Plants({ comp }: { comp: CompartmentCv }) {
     };
     apply();
     return useTwin.subscribe((st, prev) => {
-      if (st.sim.cv[comp.id] !== prev.sim.cv[comp.id] || st.cvLens !== prev.cvLens) apply();
+      if (st.sim.cv[comp.id] !== prev.sim.cv[comp.id] || st.cvLens !== prev.cvLens || st.viewDays !== prev.viewDays) apply();
     });
   }, [comp.id, isTomato, leafBase, plants]);
 
