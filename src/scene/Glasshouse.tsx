@@ -327,6 +327,7 @@ export const scoutBotPos: Record<string, [number, number]> = {};
 
 function ScoutBot({ id }: { id: string }) {
   const bot = useRef<Group>(null);
+  const head = useRef<Group>(null);
   const glow = useRef<Group>(null);
   const pos = useRef(0);
   const rows = useTwin((s) => s.sim.cv[id].rows);
@@ -339,21 +340,27 @@ function ScoutBot({ id }: { id: string }) {
     const f = Math.max(0, Math.min(0.9999, pos.current)) * aisles.length;
     const i = Math.floor(f);
     const a = aisles[i];
-    // Serpentine: even aisles run one way, odd aisles back; ease at the ends.
+    // One aisle pass: drive down scanning one side, turn the mast 180° on the
+    // fixed base, drive back scanning the other side, then move to the next aisle.
     const t = f - i;
-    const e = t < 0.08 ? 0 : t > 0.92 ? 1 : (t - 0.08) / 0.84;
-    const forward = i % 2 === 0;
-    const z = forward ? a.z0 + (a.z1 - a.z0) * e : a.z1 - (a.z1 - a.z0) * e;
+    const seg = (lo: number, hi: number) => Math.max(0, Math.min(1, (t - lo) / (hi - lo)));
+    const out = seg(0.04, 0.46);
+    const turn = seg(0.46, 0.54);
+    const back = seg(0.54, 0.96);
+    const along = out - back;
+    const z = a.z0 + (a.z1 - a.z0) * along;
     bot.current.position.set(a.x, 0, z);
+    if (head.current) head.current.rotation.y = turn * Math.PI;
     scoutBotPos[`CAM-${id}`] = [a.x, z];
-    if (glow.current) glow.current.children.forEach((m, k) => ((m as Mesh).material as MeshBasicMaterial).opacity = 0.55 + Math.sin(clock.elapsedTime * 6 + k) * 0.25);
+    const scanning = (out > 0 && out < 1) || (back > 0 && back < 1);
+    if (glow.current) glow.current.children.forEach((m, k) => ((m as Mesh).material as MeshBasicMaterial).opacity = scanning ? 0.6 + Math.sin(clock.elapsedTime * 6 + k) * 0.25 : 0.15);
   });
   const H = 3.5;
   const levels = [0.7, 1.25, 1.8, 2.35, 2.9];
   return (
     <Pickable id={`CAM-${id}`}>
       <group ref={bot} userData={{ dynamic: true }}>
-        {/* pipe-rail cart */}
+        {/* fixed pipe-rail base */}
         <mesh position={[0, 0.2, 0]} castShadow>
           <boxGeometry args={[0.62, 0.22, 0.95]} />
           <meshStandardMaterial color="#1a1d22" roughness={0.6} />
@@ -364,34 +371,31 @@ function ScoutBot({ id }: { id: string }) {
             <meshStandardMaterial color="#3a3f47" />
           </mesh>
         ))}
-        {/* mast */}
-        <mesh position={[0, 0.3 + H / 2, 0]} castShadow>
-          <boxGeometry args={[0.3, H, 0.3]} />
-          <meshStandardMaterial color="#111418" roughness={0.45} metalness={0.2} />
-        </mesh>
-        <mesh position={[0, 0.3 + H + 0.05, 0]}>
-          <boxGeometry args={[0.36, 0.1, 0.36]} />
-          <meshStandardMaterial color="#1f242b" />
-        </mesh>
-        {/* camera + light stack, both faces (toward each row) */}
-        <group ref={glow}>
-          {levels.flatMap((y) =>
-            [-1, 1].map((side) => (
-              <mesh key={`${y}${side}`} position={[side * 0.155, 0.3 + y, 0]} rotation={[0, (side * Math.PI) / 2, 0]}>
-                <planeGeometry args={[0.2, 0.05]} />
+        {/* rotating mast: cameras and lights stacked on one face, toward the row being scanned */}
+        <group ref={head}>
+          <mesh position={[0, 0.3 + H / 2, 0]} castShadow>
+            <boxGeometry args={[0.3, H, 0.3]} />
+            <meshStandardMaterial color="#111418" roughness={0.45} metalness={0.2} />
+          </mesh>
+          <mesh position={[0, 0.3 + H + 0.05, 0]}>
+            <boxGeometry args={[0.36, 0.1, 0.36]} />
+            <meshStandardMaterial color="#1f242b" />
+          </mesh>
+          <group ref={glow}>
+            {levels.map((y) => (
+              <mesh key={y} position={[0.155, 0.3 + y, 0]} rotation={[0, Math.PI / 2, 0]}>
+                <planeGeometry args={[0.22, 0.06]} />
                 <meshBasicMaterial color="#fff7e0" transparent opacity={0.8} toneMapped={false} side={2} />
               </mesh>
-            )),
-          )}
-        </group>
-        {levels.flatMap((y) =>
-          [-1, 1].map((side) => (
-            <mesh key={`c${y}${side}`} position={[side * 0.16, 0.3 + y + 0.14, 0]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.045, 0.045, 0.04, 12]} />
+            ))}
+          </group>
+          {levels.map((y) => (
+            <mesh key={`c${y}`} position={[0.16, 0.3 + y + 0.14, 0]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.05, 0.05, 0.04, 12]} />
               <meshStandardMaterial color="#5b6b7d" metalness={0.6} roughness={0.2} />
             </mesh>
-          )),
-        )}
+          ))}
+        </group>
       </group>
     </Pickable>
   );
