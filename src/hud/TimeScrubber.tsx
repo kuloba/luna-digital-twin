@@ -92,9 +92,9 @@ export function TimeScrubber() {
   const nowIn = from <= 0 && to >= 0;
 
   return (
-    <div data-tour="scrubber" className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 flex h-14 items-center gap-3 border-t border-line bg-white/95 px-4 backdrop-blur">
-      <button type="button" onClick={() => setPlaying((p) => !p)} aria-label={playing ? "Pause" : "Play"} className="flex size-9 shrink-0 items-center justify-center rounded-[10px] ring-1 ring-line transition hover:bg-[#f3f6f8]">
-        {playing ? <Pause className="size-4 text-ink" /> : <Play className="size-4 text-ink" />}
+    <div data-tour="scrubber" className="pointer-events-auto absolute inset-x-0 bottom-0 z-30 flex h-14 items-center gap-3 bg-black px-4 text-white">
+      <button type="button" onClick={() => setPlaying((p) => !p)} aria-label={playing ? "Pause" : "Play"} className="flex size-9 shrink-0 items-center justify-center rounded-[10px] ring-[1.5px] ring-white/35 transition hover:bg-white/10 hover:ring-white/60">
+        {playing ? <Pause className="size-4 text-white/85" /> : <Play className="size-4 text-white/85" />}
       </button>
 
       <div ref={track} onPointerDown={onDown} onPointerMove={onMove} className="relative h-10 min-w-0 flex-1 cursor-pointer touch-none select-none">
@@ -102,53 +102,53 @@ export function TimeScrubber() {
         {to > 0 ? (
           <div
             className="absolute top-[22px] h-1.5 rounded-full"
-            style={{ left: `${pct(Math.max(0, from))}%`, right: `${100 - pct(to)}%`, background: "repeating-linear-gradient(135deg, rgb(37 99 235 / 0.28) 0 4px, rgb(37 99 235 / 0.08) 4px 8px)" }}
+            style={{ left: `${pct(Math.max(0, from))}%`, right: `${100 - pct(to)}%`, background: "repeating-linear-gradient(135deg, rgb(96 145 255 / 0.55) 0 4px, rgb(96 145 255 / 0.18) 4px 8px)" }}
           />
         ) : null}
-        {from < 0 ? <div className="absolute top-[22px] h-1.5 rounded-full bg-[#d5dce3]" style={{ left: 0, right: `${100 - pct(Math.min(0, to))}%` }} /> : null}
+        {from < 0 ? <div className="absolute top-[22px] h-1.5 rounded-full bg-[#3a3a3a]" style={{ left: 0, right: `${100 - pct(Math.min(0, to))}%` }} /> : null}
         {/* day ticks */}
         {ticks.map((d) => (
-          <div key={d} className="absolute top-[30px] -translate-x-1/2 font-mono text-[9px] text-faint" style={{ left: `${pct(d)}%` }}>
+          <div key={d} className="absolute top-[30px] -translate-x-1/2 font-mono text-[9px] text-white/40" style={{ left: `${pct(d)}%` }}>
             {d === 0 ? "" : new Date(now + d * DAY).toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}
           </div>
         ))}
         {/* batch milestones */}
         {milestones.map((m) => (
           <div key={m.label} className="absolute top-0 -translate-x-1/2 text-center" style={{ left: `${pct(m.d)}%` }}>
-            <div className={cn("text-[10px] font-medium whitespace-nowrap", !m.showLabel && "invisible", m.status === "PLANNED" ? "text-[#2563eb]" : "text-muted")}>{m.label}</div>
-            <div className={cn("mx-auto mt-[7px] size-2 rounded-full ring-2 ring-white", m.status === "PLANNED" ? "bg-[#93b4f5]" : "bg-[#8796a6]")} />
+            <div className={cn("text-[10px] font-medium whitespace-nowrap", !m.showLabel && "invisible", m.status === "PLANNED" ? "text-[#8fb0ff]" : "text-white/60")}>{m.label}</div>
+            <div className={cn("mx-auto mt-[7px] size-2 rounded-full ring-2 ring-black", m.status === "PLANNED" ? "bg-[#7ea2f7]" : "bg-[#9aa3ad]")} />
           </div>
         ))}
         {/* now marker */}
         {nowIn ? (
-          <div className="absolute top-[14px] h-[22px] w-px bg-ink/40" style={{ left: `${pct(0)}%` }}>
-            <span className="absolute -top-[13px] -translate-x-1/2 font-mono text-[9px] font-semibold text-ink">NOW</span>
+          <div className="absolute top-[14px] h-[22px] w-px bg-white/50" style={{ left: `${pct(0)}%` }}>
+            <span className="absolute -top-[13px] -translate-x-1/2 font-mono text-[9px] font-semibold text-white">NOW</span>
           </div>
         ) : null}
         {/* playhead */}
         <div className="absolute top-[12px] -translate-x-1/2" style={{ left: `${pct(viewDays)}%` }}>
-          <div className={cn("h-[26px] w-[3px] rounded-full", mode === "forecast" ? "bg-[#2563eb]" : mode === "history" ? "bg-[#e0662c]" : "bg-ok")} />
+          <div className={cn("h-[26px] w-[3px] rounded-full", mode === "forecast" ? "bg-[#4f86ff]" : mode === "history" ? "bg-[#f0702f]" : "bg-ok")} />
         </div>
       </div>
 
-      <div className={cn("flex h-9 shrink-0 items-center gap-2 rounded-[10px] px-2.5 ring-1", mode === "forecast" ? "bg-[#eff4ff] ring-[#bcd0fb]" : mode === "history" ? "bg-[#fff4ee] ring-[#f6cdb6]" : "bg-[#f3f6f8] ring-line")}>
+      <div className={cn("flex h-9 shrink-0 items-center gap-2 rounded-[10px] px-2.5 ring-1", mode === "forecast" ? "bg-[#4f86ff]/12 ring-[#4f86ff]/45" : mode === "history" ? "bg-[#f0702f]/12 ring-[#f0702f]/45" : "bg-white/[0.07] ring-white/20")}>
         <span className={cn("rounded-full px-1.5 py-[1px] font-mono text-[9.5px] font-semibold tracking-[0.06em] uppercase", mode === "forecast" ? "bg-[#2563eb] text-white" : mode === "history" ? "bg-[#e0662c] text-white" : "bg-ok text-white")}>
           {mode === "forecast" ? "Forecast" : mode === "history" ? "History" : "Live"}
         </span>
         <div className="flex flex-col leading-none">
-          <span className="text-[12px] font-medium whitespace-nowrap text-ink">{fmtDay(at)}</span>
-          <span className="mt-0.5 font-mono text-[10px] text-muted">{mode === "live" ? fmtTime(at) : `${viewDays > 0 ? "+" : ""}${viewDays.toFixed(1)} d`}</span>
+          <span className="text-[12px] font-medium whitespace-nowrap text-white">{fmtDay(at)}</span>
+          <span className="mt-0.5 font-mono text-[10px] text-white/55">{mode === "live" ? fmtTime(at) : `${viewDays > 0 ? "+" : ""}${viewDays.toFixed(1)} d`}</span>
         </div>
         {mode !== "live" ? (
-          <button type="button" onClick={() => (setPlaying(false), setViewDays(0))} title="Back to live" className="ml-1 flex size-6 items-center justify-center rounded-[7px] text-muted hover:bg-white hover:text-ink">
+          <button type="button" onClick={() => (setPlaying(false), setViewDays(0))} title="Back to live" className="ml-1 flex size-6 items-center justify-center rounded-[7px] text-white/60 hover:bg-white/10 hover:text-white">
             <RotateCcw className="size-3.5" />
           </button>
         ) : null}
       </div>
 
       <div className="relative shrink-0">
-        <button type="button" onClick={() => setCalOpen((v) => !v)} aria-label="Date range" className={cn("flex size-9 items-center justify-center rounded-[10px] ring-1 ring-line transition hover:bg-[#f3f6f8]", calOpen && "bg-[#f3f6f8]")}>
-          <CalendarDays className="size-4 text-ink" />
+        <button type="button" onClick={() => setCalOpen((v) => !v)} aria-label="Date range" className={cn("flex size-9 items-center justify-center rounded-[10px] ring-[1.5px] ring-white/35 transition hover:bg-white/10 hover:ring-white/60", calOpen && "bg-white/10 ring-white/60")}>
+          <CalendarDays className="size-4 text-white/85" />
         </button>
         <AnimatePresence>{calOpen ? <RangePicker onClose={() => setCalOpen(false)} /> : null}</AnimatePresence>
       </div>

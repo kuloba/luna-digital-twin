@@ -32,8 +32,9 @@ export function App() {
   const [anyway, setAnyway] = useState(false);
   if (small && !anyway) return <SmallScreen onContinue={() => setAnyway(true)} />;
   return (
-    <div className="relative h-full w-full">
-      <div className="absolute inset-0 z-0">
+    <div className="relative h-full w-full bg-black">
+      {/* The 3D canvas sits inside a black frame: the time bar below it is the frame's bottom edge. */}
+      <div className="absolute inset-x-0 top-0 bottom-14 z-0 overflow-hidden rounded-b-[22px] bg-canvas">
         <Scene />
       </div>
       <div className="pointer-events-none absolute inset-0 z-10">
