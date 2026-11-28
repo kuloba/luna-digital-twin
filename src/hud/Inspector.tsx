@@ -33,7 +33,7 @@ const KIND_LABEL: Record<AssetKind, string> = {
   COLD_ROOM: "Cold room",
   DOCK: "Dock door",
   TRUCK: "Reefer truck",
-  CAMERA: "LUNA camera rail",
+  CAMERA: "LUNA scout bot",
   ROW: "Crop row · computer vision",
   TANK: "Tank",
   EDGE: "LUNA edge node",

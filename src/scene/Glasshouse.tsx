@@ -1,7 +1,7 @@
 import type { ThreeEvent } from "@react-three/fiber";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { CanvasTexture, Color, ExtrudeGeometry, type Group, type InstancedMesh, type Mesh, Object3D, Shape } from "three";
+import { CanvasTexture, Color, ExtrudeGeometry, type Group, type InstancedMesh, type Mesh, type MeshBasicMaterial, Object3D, Shape } from "three";
 import { C } from "@/lib/theme";
 import { CANOPY_HIGH, CANOPY_LOW, CUCUMBER_STAGES, RIPENESS_STAGES, rowYield } from "@/sim/cv";
 import { COMPARTMENTS } from "@/sim/layout";
@@ -93,7 +93,10 @@ function Compartment({ id, bounds }: { id: string; bounds: [number, number, numb
         <RowFixture key={r.id} id={r.id} x={r.x} z0={r.z0} z1={r.z1} />
       ))}
       <Plants comp={comp} />
-      <ScanGantry id={id} x0={x0} width={width} />
+      {/* High-wire crops (tomato, cucumber) are scanned by a slender bot riding the
+          heating-pipe rail between rows; the overhead gantry fits low crops
+          (leafy greens, cannabis, ornamentals) and stays available for those. */}
+      {comp.crop === "TOMATO" || comp.crop === "CUCUMBER" ? <ScoutBot id={id} /> : <ScanGantry id={id} x0={x0} width={width} />}
       <YieldStrips comp={comp} />
       <PestBeacons comp={comp} />
     </group>
@@ -311,6 +314,87 @@ function wakeTexture() {
   ctx.fillRect(0, 0, 64, 1);
   wakeTex = new CanvasTexture(c);
   return wakeTex;
+}
+
+/**
+ * LUNA scout bot for vertical (high-wire) crops: a tall, slender black mast on
+ * a pipe-rail cart, with cameras and lights stacked up both faces. It drives
+ * the aisle between two rows end to end, then moves to the next aisle, in step
+ * with the compartment's scan progress.
+ */
+/** Live scout-bot positions (x, z) by camera asset id, for its tag and selection box. */
+export const scoutBotPos: Record<string, [number, number]> = {};
+
+function ScoutBot({ id }: { id: string }) {
+  const bot = useRef<Group>(null);
+  const glow = useRef<Group>(null);
+  const pos = useRef(0);
+  const rows = useTwin((s) => s.sim.cv[id].rows);
+  const aisles = useMemo(() => rows.slice(0, -1).map((r, i) => ({ x: (r.x + rows[i + 1].x) / 2, z0: Math.min(r.z0, r.z1) + 0.6, z1: Math.max(r.z0, r.z1) - 0.6 })), [rows]);
+  useFrame(({ clock }, dt) => {
+    const c = twin().sim.cv[id];
+    if (!c || !bot.current || !aisles.length) return;
+    const target = c.scan + c.scanDir * 0.0065 * Math.min(1, (clockNow() - twin().sim.lastTickAt) / 1000);
+    pos.current += (target - pos.current) * Math.min(1, dt * 4);
+    const f = Math.max(0, Math.min(0.9999, pos.current)) * aisles.length;
+    const i = Math.floor(f);
+    const a = aisles[i];
+    // Serpentine: even aisles run one way, odd aisles back; ease at the ends.
+    const t = f - i;
+    const e = t < 0.08 ? 0 : t > 0.92 ? 1 : (t - 0.08) / 0.84;
+    const forward = i % 2 === 0;
+    const z = forward ? a.z0 + (a.z1 - a.z0) * e : a.z1 - (a.z1 - a.z0) * e;
+    bot.current.position.set(a.x, 0, z);
+    scoutBotPos[`CAM-${id}`] = [a.x, z];
+    if (glow.current) glow.current.children.forEach((m, k) => ((m as Mesh).material as MeshBasicMaterial).opacity = 0.55 + Math.sin(clock.elapsedTime * 6 + k) * 0.25);
+  });
+  const H = 3.5;
+  const levels = [0.7, 1.25, 1.8, 2.35, 2.9];
+  return (
+    <Pickable id={`CAM-${id}`}>
+      <group ref={bot} userData={{ dynamic: true }}>
+        {/* pipe-rail cart */}
+        <mesh position={[0, 0.2, 0]} castShadow>
+          <boxGeometry args={[0.62, 0.22, 0.95]} />
+          <meshStandardMaterial color="#1a1d22" roughness={0.6} />
+        </mesh>
+        {[-0.42, 0.42].map((z) => (
+          <mesh key={z} position={[0, 0.08, z]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.07, 0.07, 0.66, 10]} />
+            <meshStandardMaterial color="#3a3f47" />
+          </mesh>
+        ))}
+        {/* mast */}
+        <mesh position={[0, 0.3 + H / 2, 0]} castShadow>
+          <boxGeometry args={[0.3, H, 0.3]} />
+          <meshStandardMaterial color="#111418" roughness={0.45} metalness={0.2} />
+        </mesh>
+        <mesh position={[0, 0.3 + H + 0.05, 0]}>
+          <boxGeometry args={[0.36, 0.1, 0.36]} />
+          <meshStandardMaterial color="#1f242b" />
+        </mesh>
+        {/* camera + light stack, both faces (toward each row) */}
+        <group ref={glow}>
+          {levels.flatMap((y) =>
+            [-1, 1].map((side) => (
+              <mesh key={`${y}${side}`} position={[side * 0.155, 0.3 + y, 0]} rotation={[0, (side * Math.PI) / 2, 0]}>
+                <planeGeometry args={[0.2, 0.05]} />
+                <meshBasicMaterial color="#fff7e0" transparent opacity={0.8} toneMapped={false} side={2} />
+              </mesh>
+            )),
+          )}
+        </group>
+        {levels.flatMap((y) =>
+          [-1, 1].map((side) => (
+            <mesh key={`c${y}${side}`} position={[side * 0.16, 0.3 + y + 0.14, 0]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.045, 0.045, 0.04, 12]} />
+              <meshStandardMaterial color="#5b6b7d" metalness={0.6} roughness={0.2} />
+            </mesh>
+          )),
+        )}
+      </group>
+    </Pickable>
+  );
 }
 
 /** LUNA camera rail: a gantry sweeping the compartment with a camera pod. */

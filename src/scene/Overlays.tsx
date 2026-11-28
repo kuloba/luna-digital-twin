@@ -9,6 +9,7 @@ import { COLD_ROOMS, COMPARTMENTS, STATIONS, ZONE_BY_ID, corridorPath, pointAlon
 import { twin, useTwin, type HeatLayer } from "@/sim/store";
 import { STAGES, type Asset, type SimState, type StageVisit } from "@/sim/types";
 import { clockNow } from "@/lib/clock";
+import { scoutBotPos } from "./Glasshouse";
 import { useLabelSlot } from "./Tags";
 
 /* ------------------------------------------------------------------ */
@@ -47,7 +48,7 @@ function useScreenScale(px: number, base = 18) {
   return ref;
 }
 
-/** A blue wireframe box round the plant and a pin above it that stays readable when zoomed out. */
+/** A single plant keeps the pin (ring, mast and head) rather than a box; the pin stays readable when zoomed out. */
 function PlantMarker({ plantId }: { plantId: string }) {
   const p = useTwin((s) => s.sim.cv[plantId.slice(0, 2)]?.plants[plantId]);
   const ring = useRef<Mesh>(null);
@@ -60,7 +61,6 @@ function PlantMarker({ plantId }: { plantId: string }) {
   });
   const [anchor, setEl] = useLabelSlot("plant", 4.8);
   const h = p?.seen.height ?? 3;
-  const edges = useMemo(() => boxEdges(0.55, h + 0.25, 0.55), [h]);
   if (!p) return null;
   const comp = plantId.slice(0, 2);
   const stages = comp === "G3" ? CUCUMBER_STAGES : RIPENESS_STAGES;
@@ -78,10 +78,13 @@ function PlantMarker({ plantId }: { plantId: string }) {
           </div>
         </Html>
       </group>
-      <Line points={edges} segments color={C.select} lineWidth={2} transparent opacity={0.95} depthTest={false} renderOrder={6} />
       <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.62, 0]} renderOrder={5}>
         <ringGeometry args={[0.55, 0.7, 40]} />
         <meshBasicMaterial color={C.select} transparent depthWrite={false} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, h / 2 + 0.3, 0]} renderOrder={5}>
+        <cylinderGeometry args={[0.06, 0.06, h + 0.5, 8]} />
+        <meshBasicMaterial color={C.select} transparent opacity={0.9} depthTest={false} toneMapped={false} />
       </mesh>
       <group ref={pin} position={[0, h + 0.55, 0]}>
         <mesh renderOrder={7}>
@@ -105,12 +108,15 @@ function PlantMarker({ plantId }: { plantId: string }) {
 function BoundingBox({ id, hover }: { id: string; hover?: boolean }) {
   const ref = useRef<Group>(null);
   const kind = useTwin((s) => s.sim.assets[id]?.kind);
-  const size = useTwin((s) => s.sim.assets[id]?.size);
+  const rawSize = useTwin((s) => s.sim.assets[id]?.size);
+  // A camera on a scout bot boxes the bot itself, not the old rail span.
+  const size: [number, number, number] | undefined = kind === "CAMERA" && scoutBotPos[id] ? [0.7, 3.6, 1.0] : rawSize;
   useFrame(() => {
     const a = twin().sim.assets[id];
     if (!ref.current || !a) return;
-    const p = a.kind === "AMR" ? amrPos(id) : a.position;
-    ref.current.position.set(p[0], 0.04, p[2]);
+    const bot = a.kind === "CAMERA" ? scoutBotPos[id] : undefined;
+    const p = a.kind === "AMR" ? amrPos(id) : bot ? [bot[0], 0, bot[1]] : a.position;
+    ref.current.position.set(p[0], bot ? 0.04 : 0.04, p[2]);
   });
   const big = kind === "ROOM" || kind === "COMPARTMENT" || kind === "COLD_ROOM";
   const pad = big ? 0.25 : kind === "ROW" ? 0.2 : 0.4;

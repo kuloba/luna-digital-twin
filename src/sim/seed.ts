@@ -262,7 +262,7 @@ function buildAssets(batches: Record<string, Batch>): Record<string, Asset> {
       metrics: { temp, rh, vpd: metric("vpd", { value: vpdOf(temp.value, rh.value), low: 0.5, high: 1.1, setpoint: 0.65 }), co2: metric("co2", { setpoint: 780, low: 650, high: 950 }), ppfd: metric("ppfd", { label: "PAR at head", setpoint: 410, low: 300, high: 700, noise: 6 }), dli: metric("dli", { setpoint: 15, value: 9.4, low: 0, high: 30 }) },
       detail: { crop: c.id === "G3" ? "Mini Cucumber · Proloog" : "Tomato · Merlice", area: "4,940 m²", vents: "18 %", screen: "Energy 0 %", heating: "Pipe 38 °C", avgFruitWeight: c.id === "G3" ? "118 g" : c.id === "G1" ? "132 g" : "126 g" } });
     rand(); // the old image-count draw: keeps every later seeded value unchanged
-    add(assets, { id: `CAM-${c.id}`, kind: "CAMERA", name: `LUNA Camera Rail ${c.id}`, zoneId: "GH", roomId: c.id, position: [(x0 + x1) / 2, 4.6, (z0 + z1) / 2], size: [x1 - x0, 0.4, 0.6],
+    add(assets, { id: `CAM-${c.id}`, kind: "CAMERA", name: `LUNA Scout Bot ${c.id}`, zoneId: "GH", roomId: c.id, position: [(x0 + x1) / 2, 4.6, (z0 + z1) / 2], size: [x1 - x0, 0.4, 0.6],
       status: "ACTIVE", activity: "Scanning", progress: 0.2 + 0.25 * COMPARTMENTS.indexOf(c),
       metrics: { coverage: metric("coverage", { setpoint: 100, value: 100 }) },
       detail: { cameras: "6 × 12 MP, ring-lit", passInterval: "~2.5 h", edgeModels: "Truss · ripeness · pests", imagesKeptOnSite: "30 days" } });
@@ -373,7 +373,7 @@ function buildAssets(batches: Record<string, Batch>): Record<string, Asset> {
       add(assets, { id, kind: "ROW", name: `Row ${r + 1} · ${c.id}`, zoneId: "GH", roomId: c.id, position: [x, 0, 18.8], size: [1.1, 3.4, 23.4], status: "ACTIVE", activity: c.id === "G3" && r === 5 ? "Picking" : "Growing", batchId: ghBatch[c.id], metrics: {} });
     }
   }
-  add(assets, { id: "EDGE-01", kind: "EDGE", name: "LUNA Edge Node", zoneId: "GH", roomId: "G3", position: [-4.2, 0, 29.6], size: [1.4, 2.2, 1.1], status: "ACTIVE", activity: "Inferencing · 3 rails",
+  add(assets, { id: "EDGE-01", kind: "EDGE", name: "LUNA Edge Node", zoneId: "GH", roomId: "G3", position: [-4.2, 0, 29.6], size: [1.4, 2.2, 1.1], status: "ACTIVE", activity: "Inferencing · 3 bots",
     metrics: { power: metric("power", { label: "Power", unit: "W", setpoint: 640, low: 0, high: 900, noise: 6 }), throughput: metric("throughput", { label: "Inference", unit: "img/s", setpoint: 38, low: 20, high: 60, noise: 1.2 }) },
     detail: { gpus: "2 × L4", models: "TrussNet 5.2 · RipeNet 3.0 · PestScout 2.4", uplink: "LTE 12 Mbps", latency: "~140 ms frame → twin" } });
 

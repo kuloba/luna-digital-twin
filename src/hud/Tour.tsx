@@ -72,7 +72,7 @@ export const STEPS: Step[] = [
   },
   {
     title: "Crop vision, without the photos",
-    body: "LUNA camera rails image every tomato plant several times a day. Inference runs on-site, so the twin draws each truss from its **ripeness score** — the crop you see is the crop the cameras measured.",
+    body: "LUNA scout bots drive between the rows, imaging every tomato plant several times a day. Inference runs on-site, so the twin draws each truss from its **ripeness score** — the crop you see is the crop the cameras measured.",
     enter: () => {
       const st = twin();
       st.setLayer("heat", null);

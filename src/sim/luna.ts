@@ -114,7 +114,7 @@ export function assetSummary(a: Asset, s: SimState): string {
     case "COLD_ROOM":
       return `Holding ${formatNumber(a.metrics.temp!.value, 1)} °C at ${formatNumber(a.metrics.rh!.value)} % RH, ${a.detail?.pallets} of ${a.detail?.capacity} pallet positions in use. Door ${a.metrics.doorOpen && a.metrics.doorOpen.value > 0.5 ? "open" : "closed"}.`;
     case "CAMERA":
-      return `Sweeping ${a.roomId} at 0.4 m/s. Every plant is re-imaged roughly every 2.5 h; inference runs on [[EDGE-01]], so only plant state leaves the glasshouse.`;
+      return `Driving the aisles of ${a.roomId} between the high-wire rows, cameras and lights stacked up the mast. Every plant is re-imaged roughly every 2.5 h; inference runs on [[EDGE-01]], so only plant state leaves the glasshouse.`;
     case "EDGE":
       return "Runs truss, ripeness and pest models on-site. Photos stay local; the twin receives a few hundred bytes per plant.";
     case "TANK":
@@ -185,7 +185,7 @@ export function reply(prompt: string, s: SimState, role: Role): { text: string; 
     const images = s.cv.G1.imagesToday + s.cv.G2.imagesToday + s.cv.G3.imagesToday;
     const raw = (images * 4.2) / 1024;
     const synced = ((Object.keys(s.cv.G1.plants).length * 3 * 9.2 * 1.15) / 1024 + images * 0.00009);
-    return { text: `Today the three camera rails have taken **${formatNumber(images)} images** (~${formatNumber(raw)} GB). None of them left the site. [[EDGE-01]] runs truss, ripeness and pest models locally and syncs **${formatNumber(synced, 1)} MB** of plant state — a **${formatNumber((1 - synced / 1024 / raw) * 100, 3)} %** reduction. That's why this twin stays live over a 12 Mbps LTE uplink, and why it loads instantly: you're looking at the crop's state, not its photos.` };
+    return { text: `Today the three scout bots have taken **${formatNumber(images)} images** (~${formatNumber(raw)} GB). None of them left the site. [[EDGE-01]] runs truss, ripeness and pest models locally and syncs **${formatNumber(synced, 1)} MB** of plant state — a **${formatNumber((1 - synced / 1024 / raw) * 100, 3)} %** reduction. That's why this twin stays live over a 12 Mbps LTE uplink, and why it loads instantly: you're looking at the crop's state, not its photos.` };
   }
   if (p.includes("forecast") || p.includes("two weeks") || p.includes("14 day") || p.includes("14-day") || p.includes("next week") || p.includes("fortnight")) {
     return { text: forecastAnswer(s) };

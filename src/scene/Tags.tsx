@@ -1,4 +1,5 @@
 import { Html } from "@react-three/drei";
+import { scoutBotPos } from "./Glasshouse";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { type Group, Vector3 } from "three";
@@ -205,7 +206,10 @@ function anchor(a: Asset): [number, number, number] {
   // Rooms float well above their towers so the room chip never sits on a tower chip.
   if (a.kind === "ROOM" || a.kind === "COMPARTMENT") return [a.position[0], top + 2.4, a.position[2]];
   if (a.kind === "COLD_ROOM") return [a.position[0], top + 0.6, a.position[2]];
-  if (a.kind === "CAMERA") return [a.position[0], 5.2, a.position[2] - 8];
+  if (a.kind === "CAMERA") {
+    const b = scoutBotPos[a.id];
+    return b ? [b[0], 4.6, b[1]] : [a.position[0], 5.2, a.position[2] - 8];
+  }
   if (a.kind === "ROW") return [a.position[0], 4.1, a.position[2] - 9];
   if (a.kind === "TRUCK") return [a.position[0], 4.4, a.position[2] + 1];
   return [a.position[0], top + 0.45, a.position[2]];

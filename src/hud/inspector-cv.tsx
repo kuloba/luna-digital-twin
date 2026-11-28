@@ -349,7 +349,7 @@ export function CameraRail({ compId }: { compId: string }) {
   const comp = useTwin((s) => s.sim.cv[compId]);
   const sum = useMemo(() => summarise(Object.values(comp.plants), comp.crop, comp.imagesToday), [comp]);
   return (
-    <Section title="Rail position" action={<span className="text-[10.5px] text-faint">pass {comp.passes} today</span>}>
+    <Section title="Bot position" action={<span className="text-[10.5px] text-faint">pass {comp.passes} today</span>}>
       <div className="rounded-[12px] bg-panel-2 px-3 pt-3 pb-2.5">
         <div className="relative h-8">
           <div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-[#d6dee6]" />
