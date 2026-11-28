@@ -97,7 +97,7 @@ export function TimeScrubber() {
         {playing ? <Pause className="size-4 text-white/85" /> : <Play className="size-4 text-white/85" />}
       </button>
 
-      <div ref={track} onPointerDown={onDown} onPointerMove={onMove} className="relative h-10 min-w-0 flex-1 cursor-pointer touch-none select-none">
+      <div ref={track} onPointerDown={onDown} onPointerMove={onMove} className="relative h-10 min-w-0 flex-1 -translate-y-[5px] cursor-pointer touch-none select-none">
         {/* forecast region */}
         {to > 0 ? (
           <div
