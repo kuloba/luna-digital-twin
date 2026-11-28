@@ -1,6 +1,6 @@
 import { Html, Line, QuadraticBezierLine } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CanvasTexture, type Group, type Mesh, type MeshBasicMaterial, SRGBColorSpace, Vector3 } from "three";
 import { formatDayTime, formatNumber } from "@/lib/format";
 import { C, severityColor } from "@/lib/theme";
@@ -29,14 +29,31 @@ export function SelectionMarker() {
   );
 }
 
+/** Faces each of the 12 box edges borders, as [axis, sign] pairs (axis 0=x, 1=y, 2=z). */
+const EDGE_FACES: [number, number][][] = [
+  [[1, -1], [2, -1]], [[1, -1], [0, 1]], [[1, -1], [2, 1]], [[1, -1], [0, -1]],
+  [[1, 1], [2, -1]], [[1, 1], [0, 1]], [[1, 1], [2, 1]], [[1, 1], [0, -1]],
+  [[0, -1], [2, -1]], [[0, 1], [2, -1]], [[0, 1], [2, 1]], [[0, -1], [2, 1]],
+];
+
+/** Bitmask of the box edges the camera can see: an edge is hidden only when both faces it borders face away. */
+function visibleEdgeMask(dir: Vector3) {
+  const v = [dir.x, dir.y, dir.z];
+  let mask = 0;
+  EDGE_FACES.forEach((faces, i) => {
+    if (faces.some(([axis, sign]) => sign * v[axis] < -1e-4)) mask |= 1 << i;
+  });
+  return mask;
+}
+
 /** The 12 edges of a box centred on x/z, standing on the floor, as line-segment pairs. */
-function boxEdges(w: number, h: number, d: number): [number, number, number][] {
+function boxEdges(w: number, h: number, d: number, mask = 0xfff): [number, number, number][] {
   const c = [
     [-w, 0, -d], [w, 0, -d], [w, 0, d], [-w, 0, d],
     [-w, h, -d], [w, h, -d], [w, h, d], [-w, h, d],
   ] as [number, number, number][];
   const e = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]];
-  return e.flatMap(([a, b]) => [c[a], c[b]]);
+  return e.flatMap(([a, b], i) => (mask & (1 << i) ? [c[a], c[b]] : []));
 }
 
 /** Keeps a marker about the same size on screen at any zoom (orthographic camera). */
@@ -123,7 +140,14 @@ function BoundingBox({ id, hover }: { id: string; hover?: boolean }) {
   const w = (size?.[0] ?? 0) / 2 + pad;
   const d = (size?.[2] ?? 0) / 2 + pad;
   const h = (size?.[1] ?? 0) + (big ? 0.1 : 0.35);
-  const edges = useMemo(() => boxEdges(w, h, d), [w, h, d]);
+  // Hide the edges behind the box (usually the bottom-back ones) so it reads as a solid volume.
+  const [mask, setMask] = useState(0xfff);
+  const camDir = useRef(new Vector3());
+  useFrame(({ camera }) => {
+    const m = visibleEdgeMask(camera.getWorldDirection(camDir.current));
+    if (m !== mask) setMask(m);
+  });
+  const edges = useMemo(() => boxEdges(w, h, d, mask), [w, h, d, mask]);
   if (!size || !kind) return null;
   return (
     <group ref={ref}>
