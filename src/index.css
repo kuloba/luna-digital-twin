@@ -197,8 +197,25 @@ body,
   color: #2459a6;
 }
 
-.spatial-tag--selected {
-  box-shadow: 0 0 0 2px var(--color-luna), 0 6px 16px -2px rgb(15 27 42 / 0.25);
+/* Selected reads as a solid chip, so it always outranks hover (a lift and shadow). */
+.spatial-tag--selected,
+.spatial-tag--selected:hover {
+  background: #2563eb;
+  box-shadow: 0 0 0 1px #1d4ed8, 0 6px 16px -2px rgb(37 99 235 / 0.45);
+}
+.spatial-tag--selected .spatial-tag__id,
+.spatial-tag--selected .spatial-tag__activity {
+  color: #fff;
+}
+.spatial-tag--selected .spatial-tag__activity {
+  opacity: 0.85;
+}
+.spatial-tag--selected .spatial-tag__dot {
+  box-shadow: 0 0 0 1.5px #fff;
+}
+.spatial-tag--selected::after {
+  width: 2px;
+  background: #2563eb;
 }
 
 @keyframes slide {

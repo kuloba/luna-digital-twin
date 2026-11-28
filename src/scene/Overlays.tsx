@@ -22,16 +22,36 @@ export function SelectionMarker() {
   return (
     <group>
       {plantId ? <PlantMarker plantId={plantId} /> : null}
-      {hoveredId && hoveredId !== selectedId ? <Bracket id={hoveredId} color={C.slateBlue} opacity={0.6} /> : null}
-      {selectedId ? <Bracket id={selectedId} color={C.luna} opacity={1} animated /> : null}
+      {hoveredId && hoveredId !== selectedId ? <BoundingBox id={hoveredId} hover /> : null}
+      {selectedId ? <BoundingBox id={selectedId} /> : null}
     </group>
   );
 }
 
-/** A pulsing ring at the selected plant's foot and a mast to its head, so one plant reads among 1,800. */
+/** The 12 edges of a box centred on x/z, standing on the floor, as line-segment pairs. */
+function boxEdges(w: number, h: number, d: number): [number, number, number][] {
+  const c = [
+    [-w, 0, -d], [w, 0, -d], [w, 0, d], [-w, 0, d],
+    [-w, h, -d], [w, h, -d], [w, h, d], [-w, h, d],
+  ] as [number, number, number][];
+  const e = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]];
+  return e.flatMap(([a, b]) => [c[a], c[b]]);
+}
+
+/** Keeps a marker about the same size on screen at any zoom (orthographic camera). */
+function useScreenScale(px: number, base = 18) {
+  const ref = useRef<Group>(null);
+  useFrame(({ camera }) => {
+    if (ref.current) ref.current.scale.setScalar(Math.max(1, (px / base) * (18 / Math.max(1, camera.zoom))));
+  });
+  return ref;
+}
+
+/** A blue wireframe box round the plant and a pin above it that stays readable when zoomed out. */
 function PlantMarker({ plantId }: { plantId: string }) {
   const p = useTwin((s) => s.sim.cv[plantId.slice(0, 2)]?.plants[plantId]);
   const ring = useRef<Mesh>(null);
+  const pin = useScreenScale(18);
   useFrame(({ clock }) => {
     if (!ring.current) return;
     const t = (clock.elapsedTime % 1.6) / 1.6;
@@ -39,8 +59,9 @@ function PlantMarker({ plantId }: { plantId: string }) {
     (ring.current.material as MeshBasicMaterial).opacity = 0.9 * (1 - t);
   });
   const [anchor, setEl] = useLabelSlot("plant", 4.8);
+  const h = p?.seen.height ?? 3;
+  const edges = useMemo(() => boxEdges(0.55, h + 0.25, 0.55), [h]);
   if (!p) return null;
-  const h = p.seen.height;
   const comp = plantId.slice(0, 2);
   const stages = comp === "G3" ? CUCUMBER_STAGES : RIPENESS_STAGES;
   const ripest = stages[stageIndex(Math.max(...p.seen.trusses.map((t) => t.ripeness)))].label.toLowerCase();
@@ -49,7 +70,7 @@ function PlantMarker({ plantId }: { plantId: string }) {
       <group ref={anchor} position={[0, h + 0.85, 0]}>
         <Html center zIndexRange={[31, 10]} style={{ pointerEvents: "none" }}>
           <div ref={setEl} className="spatial-tag spatial-tag--selected -translate-y-1/2">
-            <span className="spatial-tag__dot" style={{ background: C.luna }} />
+            <span className="spatial-tag__dot" style={{ background: C.select }} />
             <span className="spatial-tag__id">{plantId}</span>
             <span className="spatial-tag__activity">
               {p.seen.trusses.length} trusses · ripest {ripest}
@@ -57,57 +78,65 @@ function PlantMarker({ plantId }: { plantId: string }) {
           </div>
         </Html>
       </group>
+      <Line points={edges} segments color={C.select} lineWidth={2} transparent opacity={0.95} depthTest={false} renderOrder={6} />
       <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.62, 0]} renderOrder={5}>
         <ringGeometry args={[0.55, 0.7, 40]} />
-        <meshBasicMaterial color={C.luna} transparent depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial color={C.select} transparent depthWrite={false} toneMapped={false} />
       </mesh>
-      <mesh position={[0, h / 2 + 0.3, 0]} renderOrder={5}>
-        <cylinderGeometry args={[0.045, 0.045, h + 0.6, 6]} />
-        <meshBasicMaterial color={C.luna} transparent opacity={0.85} depthTest={false} toneMapped={false} />
-      </mesh>
-      <mesh position={[0, h + 0.65, 0]} renderOrder={5}>
-        <sphereGeometry args={[0.16, 12, 10]} />
-        <meshBasicMaterial color={C.luna} depthTest={false} toneMapped={false} />
-      </mesh>
+      <group ref={pin} position={[0, h + 0.55, 0]}>
+        <mesh renderOrder={7}>
+          <sphereGeometry args={[0.16, 16, 12]} />
+          <meshBasicMaterial color={C.select} depthTest={false} toneMapped={false} />
+        </mesh>
+        <mesh renderOrder={6}>
+          <sphereGeometry args={[0.22, 16, 12]} />
+          <meshBasicMaterial color="#ffffff" depthTest={false} toneMapped={false} />
+        </mesh>
+      </group>
     </group>
   );
 }
 
-function Bracket({ id, color, opacity, animated }: { id: string; color: string; opacity: number; animated?: boolean }) {
+/**
+ * Selection is a full 3D wireframe box in solid blue, drawn through whatever
+ * it encloses so it reads on crops and machinery alike. Hover is a faint,
+ * thin box that hides behind geometry, so it never outranks the selection.
+ */
+function BoundingBox({ id, hover }: { id: string; hover?: boolean }) {
   const ref = useRef<Group>(null);
   const kind = useTwin((s) => s.sim.assets[id]?.kind);
   const size = useTwin((s) => s.sim.assets[id]?.size);
-  useFrame(({ clock }) => {
+  useFrame(() => {
     const a = twin().sim.assets[id];
     if (!ref.current || !a) return;
-    const moving = a.kind === "AMR";
-    const p = moving ? amrPos(id) : a.position;
-    ref.current.position.set(p[0], 0.08, p[2]);
-    if (animated) {
-      const s = 1 + Math.sin(clock.elapsedTime * 3) * 0.03;
-      ref.current.scale.set(s, 1, s);
-    }
+    const p = a.kind === "AMR" ? amrPos(id) : a.position;
+    ref.current.position.set(p[0], 0.04, p[2]);
   });
+  const big = kind === "ROOM" || kind === "COMPARTMENT" || kind === "COLD_ROOM";
+  const pad = big ? 0.25 : kind === "ROW" ? 0.2 : 0.4;
+  const w = (size?.[0] ?? 0) / 2 + pad;
+  const d = (size?.[2] ?? 0) / 2 + pad;
+  const h = (size?.[1] ?? 0) + (big ? 0.1 : 0.35);
+  const edges = useMemo(() => boxEdges(w, h, d), [w, h, d]);
   if (!size || !kind) return null;
-  const pad = kind === "ROOM" || kind === "COMPARTMENT" || kind === "COLD_ROOM" ? 0.3 : 0.6;
-  const w = size[0] / 2 + pad;
-  const d = size[2] / 2 + pad;
-  const c = Math.min(1.4, Math.min(w, d) * 0.5);
-  const corners: [number, number, number][][] = [
-    [[-w, 0, -d + c], [-w, 0, -d], [-w + c, 0, -d]],
-    [[w - c, 0, -d], [w, 0, -d], [w, 0, -d + c]],
-    [[w, 0, d - c], [w, 0, d], [w - c, 0, d]],
-    [[-w + c, 0, d], [-w, 0, d], [-w, 0, d - c]],
-  ];
   return (
     <group ref={ref}>
-      {corners.map((pts, i) => (
-        <Line key={i} points={pts} color={color} lineWidth={3} transparent opacity={opacity} />
-      ))}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <planeGeometry args={[w * 2, d * 2]} />
-        <meshBasicMaterial color={color} transparent opacity={0.07 * opacity} depthWrite={false} />
-      </mesh>
+      <Line
+        points={edges}
+        segments
+        color={hover ? C.slateBlue : C.select}
+        lineWidth={hover ? 1 : 2}
+        transparent
+        opacity={hover ? 0.45 : 1}
+        depthTest={!!hover}
+        renderOrder={hover ? 0 : 6}
+      />
+      {hover ? null : (
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[w * 2, d * 2]} />
+          <meshBasicMaterial color={C.select} transparent opacity={0.08} depthWrite={false} />
+        </mesh>
+      )}
     </group>
   );
 }

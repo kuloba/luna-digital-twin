@@ -217,7 +217,7 @@ function RowStrip({ plants, crop, selectedId, rowId }: { plants: Plant[]; crop: 
           const hov = hover === i;
           return (
             <g key={p.id} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onClick={() => twin().selectPlant(p.id, rowId)} style={{ cursor: "pointer" }}>
-              <rect x={cx - step / 2 + 0.5} y={top - 6} width={step - 1} height={base - top + 14} rx={4} fill={sel ? "rgb(252 184 88 / 0.18)" : hov ? "rgb(15 27 42 / 0.04)" : "transparent"} stroke={sel ? "#f0a43a" : "none"} strokeWidth={1} />
+              <rect x={cx - step / 2 + 0.5} y={top - 6} width={step - 1} height={base - top + 14} rx={4} fill={sel ? "rgb(37 99 235 / 0.1)" : hov ? "rgb(15 27 42 / 0.04)" : "transparent"} stroke={sel ? "#2563eb" : "none"} strokeWidth={1.5} />
               {p.seen.pest && p.seen.pestLevel > 0.08 ? <circle cx={cx} cy={(head + base) / 2} r={4 + p.seen.pestLevel * 10} fill={p.seen.pest === "Botrytis" ? "#dc4a3d" : "#e59b1a"} opacity={0.14 + p.seen.pestLevel * 0.2} /> : null}
               <line x1={cx} x2={cx} y1={base} y2={head} stroke="#5b8a52" strokeWidth={1.3} strokeLinecap="round" />
               {/* leaves */}
@@ -256,7 +256,7 @@ function PlantCard({ plant, crop }: { plant: Plant; crop: CompartmentCv["crop"] 
   const trusses = [...cv.trusses].sort((a, b) => b.h - a.h);
   const fresh = clockNow() - plant.scannedAt < 180_000;
   return (
-    <div className="animate-rise rounded-[12px] bg-white p-3 ring-1 ring-[#f3cf95] ring-inset">
+    <div className="animate-rise rounded-[12px] bg-white p-3 ring-1 ring-[#2563eb]/45 ring-inset">
       <div className="flex items-center gap-2">
         <span className="font-mono text-[12px] font-medium text-ink">{plant.id}</span>
         <span className="text-[10.5px] text-faint">scanned {formatAgo(plant.scannedAt)}</span>

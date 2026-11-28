@@ -29,6 +29,8 @@ export const C = {
   blue: "#3f7fd6",
   luna: "#fcb858",
   slateBlue: "#4f6d8f",
+  /** Selection: a saturated blue that holds up against crops, LEDs and the pale floor. */
+  select: "#2563eb",
 };
 
 export const statusColor: Record<AssetStatus, string> = {
